@@ -39,7 +39,7 @@ Prior to initializing the plugin, ensure that you have created an adminstration 
 ```
 $ vault write database/config/insecure-couchbase plugin_name="couchbase-database-plugin" \
         hosts="localhost" username="Administrator" password="password" \
-        bucket_name="default" \ # only needed for pre-6.0.0 clusters
+        bucket_name="default" \ # only needed for pre-6.5.0 clusters
         allowed_roles="insecure-couchbase-admin-role,insecure-couchbase-*-bucket-role"
 
 # You should consider rotating the admin password. Note that if you do, the new password will never be made available
@@ -58,6 +58,7 @@ $ BASE64PEM=$(curl -X GET http://Administrator:Admin123@127.0.0.1:8091/pools/def
 $ vault write database/config/secure-couchbase plugin_name="couchbase-database-plugin" \
       hosts="couchbases://localhost" username="Administrator" password="password" \
       tls=true base64pem=${BASE64PEM} \
+      bucket_name="default" \ # only needed for pre-6.5.0 clusters
       allowed_roles="secure-couchbase-admin-role,secure-couchbase-*-bucket-role"
       
 # You should consider rotating the admin password. Note that if you do, the new password will never be made available
@@ -67,7 +68,7 @@ $ vault write -force database/rotate-root/secure-couchbase
 ### Dynamic Role Creation
 When you create roles, you need to provide a JSON string containing the Couchbase RBAC roles which are documented https://docs.couchbase.com/server/6.5/learn/security/roles.html.
 ```
-# if a creation_statement is not provided the user account will default to '[{"name":"ro_admin"}]'
+# if a creation_statement is not provided the user account will default to read only admin, '[{"name":"ro_admin"}]'
 
 $ vault write database/roles/insecure-couchbase-admin-role db_name=insecure-couchbase \
         default_ttl="5m" max_ttl="1h" creation_statements='[{"name":"admin"}]'
