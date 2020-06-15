@@ -8,11 +8,11 @@ The plugin supports the generation of static and dynamic user roles and root cre
 
 ## Build
 
-For linux/amd64, pre-built binaries can be found at [the releases page](https://releases.hashicorp.com/vault-plugin-database-couchbase/) (built with the Couchbase Go SDK version 2.1.1)
+For Linux/AMD64, pre-built binaries can be found at [the releases page](https://releases.hashicorp.com/vault-plugin-database-couchbase/) (built with the Couchbase Go SDK version 2.1.1)
 
 For other platforms, there are not currently pre-built binaries available.
 
-To build this package for any platform you will need to clone this repository and cd into the repo directory and `go build -o couchbase-database-plugin ./couchbase-database-plugin/`. To test `go test` will execute a set of basic tests against against a custom Docker version of Couchbase (fhitchen/vault-couchbase this will be replaced with an uncustomised latest version of Couchbase when the database customization can be directly done from the test suite). If you want to run the tests against an already running couchbase instance, set the environment variable COUCHBASE_HOST before executing. Set VAULT_ACC to execute all of the tests.
+To build this package for any platform you will need to clone this repository and cd into the repo directory and `go build -o couchbase-database-plugin ./couchbase-database-plugin/`. To test `go test` will execute a set of basic tests against against a custom Docker version of Couchbase (fhitchen/vault-couchbase this will be replaced with an customized latest version of Couchbase when the database customization can be directly done from the test suite). If you want to run the tests against an already running couchbase instance, set the environment variable COUCHBASE_HOST before executing. Set VAULT_ACC to execute all of the tests.
 
 ## Installation
 
@@ -33,7 +33,7 @@ $ vault write sys/plugins/catalog/database/couchbase-database-plugin sha256=$SHA
 ```
 At this stage you are now ready to initialize the plugin to connect to couchbase cluster using unencrypted or encrypted communications.
 
-Prior to initializing the plugin, ensure that you have created an adminstration account. Vault will use the user specified here to create/update/revoke database credentials. That user must have the appropriate permissions to perform actions upon other database users. 
+Prior to initializing the plugin, ensure that you have created an administration account. Vault will use the user specified here to create/update/revoke database credentials. That user must have the appropriate permissions to perform actions upon other database users. 
 
 ### Unencrypted plugin initialization
 ```
@@ -47,11 +47,11 @@ $ vault write database/config/insecure-couchbase plugin_name="couchbase-database
 $ vault write -force database/rotate-root/insecure-couchbase
 
  ```
-**Note: If you want to connect the plugin to a couchbase cluster prior to version 6.5.0 you will also have to suppy an existing bucket (bucket_name="default") or the command will fail with the error message [TBD]**
+**Note: If you want to connect the plugin to a couchbase cluster prior to version 6.5.0 you will also have to supply an existing bucket (bucket_name="default") or the command will fail with the error message [TBD]**
 
 ### Encrypted plugin initialization
 
-The example here uses the self signed CA certificate that comes with the out of the box coucbase cluster installation and is not suitable for real production use where commercial grade certificates should be obtained.
+The example here uses the self signed CA certificate that comes with the out of the box couchbase cluster installation and is not suitable for real production use where commercial grade certificates should be obtained.
 ```
 $ BASE64PEM=$(curl -X GET http://Administrator:Admin123@127.0.0.1:8091/pools/default/certificate|base64 -w0)
 
@@ -77,7 +77,7 @@ $ vault write database/roles/insecure-couchbase-default-bucket-role db_name=inse
         default_ttl="5m" max_ttl="1h" creation_statements='[{"name":"bucket_full_access","bucket":"default"}]'
 Success! Data written to: database/roles/insecure-couchbase-default-bucket-role
 ```
-To retreive the credentials for the dynamic accounts
+To retrieve the credentials for the dynamic accounts
 ```
 
 $ vault read database/creds/insecure-couchbase-admin-role
@@ -112,7 +112,7 @@ $ vault write database/static-roles/static-account db_name=insecure-couchbase \
         username="vault-edu" rotation_period="5m"
 Success! Data written to: database/static-roles/static-account
 ````
-To retreive the credentials for the vault-edu user
+To retrieve the credentials for the vault-edu user
 ```
 $ vault read database/static-creds/static-account
 Key                    Value
