@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"os"
-	
-	"github.com/hashicorp/vault/api"
+
 	couchbase "github.com/fhitchen/vault-plugin-database-couchbase"
+	"github.com/hashicorp/vault/api"
 )
 
 func main() {

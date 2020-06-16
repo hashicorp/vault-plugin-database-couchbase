@@ -1,12 +1,12 @@
 package couchbase
 
 import (
-	"fmt"
 	"context"
-	"testing"
-	"time"
+	"fmt"
 	"log"
 	"os"
+	"testing"
+	"time"
 
 	docker "github.com/hashicorp/vault/helper/testhelpers/docker"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
@@ -15,7 +15,7 @@ import (
 )
 
 var containerInitialized bool = false
-var cleanup func() = func(){}
+var cleanup func() = func() {}
 var pre_6dot5 = false // check for Pre 6.5.0 Couchbase
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
@@ -150,17 +150,17 @@ func TestCouchbaseDB_Initialize_TLS(t *testing.T) {
 	// Test will fail if we do not use 127.0.0.1 as that is the CN in the self signed server certificate
 	// localhost will return an "unambiguous timeout" error. Look in the Couchbase memcached log to see the real error,
 	// WARNING 43: SSL_accept() returned -1 with error 1: error:14094412:SSL routines:ssl3_read_bytes:sslv3 alert bad certificate
-	
+
 	address = fmt.Sprintf("couchbases://%s", "127.0.0.1")
-	
+
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
-		"tls":              true,
-		"insecure_tls":     false,
-		"base64pem":        base64pemRootCA,
+		"hosts":        address,
+		"port":         port,
+		"username":     "Administrator",
+		"password":     "Admin123",
+		"tls":          true,
+		"insecure_tls": false,
+		"base64pem":    base64pemRootCA,
 	}
 	err = testCouchbaseDB_Initialize(t, connectionDetails)
 	if err != nil && pre_6dot5 {
@@ -171,14 +171,14 @@ func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
 	log.Printf("Testing plain text Init()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
-	
+
 	address = fmt.Sprintf("couchbase://%s", "127.0.0.1")
-	
+
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"hosts":    address,
+		"port":     port,
+		"username": "Administrator",
+		"password": "Admin123",
 	}
 	err := testCouchbaseDB_Initialize(t, connectionDetails)
 
@@ -201,18 +201,18 @@ func TestCouchbaseDB_Initialize_Pre6dot5TLS(t *testing.T) {
 	// Test will fail if we do not use 127.0.0.1 as that is the CN in the self signed server certificate
 	// localhost will return an "unambiguous timeout" error. Look in the Couchbase memcached log to see the real error,
 	// WARNING 43: SSL_accept() returned -1 with error 1: error:14094412:SSL routines:ssl3_read_bytes:sslv3 alert bad certificate
-	
+
 	address = fmt.Sprintf("couchbases://%s", "127.0.0.1")
-	
+
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
-		"tls":              true,
-		"insecure_tls":     false,
-		"base64pem":        base64pemRootCA,
-		"bucket_name":      "foo",
+		"hosts":        address,
+		"port":         port,
+		"username":     "Administrator",
+		"password":     "Admin123",
+		"tls":          true,
+		"insecure_tls": false,
+		"base64pem":    base64pemRootCA,
+		"bucket_name":  "foo",
 	}
 	testCouchbaseDB_Initialize(t, connectionDetails)
 }
@@ -220,15 +220,15 @@ func TestCouchbaseDB_Initialize_Pre6dot5NoTLS(t *testing.T) {
 	log.Printf("Testing Pre 6.5 Init()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
-	
+
 	address = fmt.Sprintf("couchbase://%s", "127.0.0.1")
-	
+
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
-		"bucket_name":      "foo",
+		"hosts":       address,
+		"port":        port,
+		"username":    "Administrator",
+		"password":    "Admin123",
+		"bucket_name": "foo",
 	}
 	testCouchbaseDB_Initialize(t, connectionDetails)
 }
@@ -242,15 +242,15 @@ func TestCouchbaseDB_CreateUser(t *testing.T) {
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"hosts":    address,
+		"port":     port,
+		"username": "Administrator",
+		"password": "Admin123",
 	}
 	if pre_6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
-	
+
 	db := new()
 	_, err := db.Init(context.Background(), connectionDetails, true)
 	if err != nil {
@@ -295,17 +295,17 @@ func testCredsExist(t *testing.T, username string, password string) error {
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         username,
-		"password":         password,
+		"hosts":    address,
+		"port":     port,
+		"username": username,
+		"password": password,
 	}
 	if pre_6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
 	time.Sleep(1 * time.Second) // a brief pause to let couchbase finish creating the account
-	
+
 	db := new()
 	_, err := db.Init(context.Background(), connectionDetails, true)
 	if err != nil {
@@ -327,10 +327,10 @@ func testRevokeUser(t *testing.T, username string) error {
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"hosts":    address,
+		"port":     port,
+		"username": "Administrator",
+		"password": "Admin123",
 	}
 	if pre_6dot5 {
 		connectionDetails["bucket_name"] = "foo"
@@ -363,10 +363,10 @@ func TestCouchbaseDB_CreateUser_DefaultRole(t *testing.T) {
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"hosts":    address,
+		"port":     port,
+		"username": "Administrator",
+		"password": "Admin123",
 	}
 	if pre_6dot5 {
 		connectionDetails["bucket_name"] = "foo"
@@ -416,10 +416,10 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "rotate-root",
-		"password":         "rotate-rootpassword",
+		"hosts":    address,
+		"port":     port,
+		"username": "rotate-root",
+		"password": "rotate-rootpassword",
 	}
 	if pre_6dot5 {
 		connectionDetails["bucket_name"] = "foo"
@@ -436,11 +436,6 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 	}
 
 	statements := []string{""}
-
-	/*usernameConfig := dbplugin.UsernameConfig{
-		DisplayName: "test",
-		RoleName:    "test",
-	}*/
 
 	password, err := db.RotateRootCredentials(context.Background(), statements)
 	if err != nil {
@@ -464,10 +459,10 @@ func testCouchbaseDB_SetCredentials(t *testing.T, username, password string) {
 	log.Printf("Testing SetCredentials()")
 
 	connectionDetails := map[string]interface{}{
-		"hosts":            address,
-		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"hosts":    address,
+		"port":     port,
+		"username": "Administrator",
+		"password": "Admin123",
 	}
 	if pre_6dot5 {
 		connectionDetails["bucket_name"] = "foo"
@@ -541,4 +536,3 @@ func TestCouchbaseDB_cleanup(t *testing.T) {
 }
 
 const testCouchbaseRole = `[{"name":"ro_admin"},{"name":"bucket_admin","bucket":"foo"}]`
-

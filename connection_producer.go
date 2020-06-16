@@ -2,16 +2,16 @@ package couchbase
 
 import (
 	"context"
-	"fmt"
-	"sync"
 	"crypto/x509"
 	"encoding/base64"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/hashicorp/vault/sdk/database/helper/connutil"
 	"github.com/couchbase/gocb/v2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/vault/sdk/database/helper/connutil"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -72,7 +72,7 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, config map[str
 			return nil, fmt.Errorf("hosts list must start with couchbases:// for TLS connection")
 		}
 	}
-	
+
 	c.Initialized = true
 
 	if verifyConnection {
@@ -142,14 +142,14 @@ func (c *couchbaseDBConnectionProducer) Connection(_ context.Context) (interface
 		}
 	} else {
 		err = c.cluster.WaitUntilReady(5*time.Second, nil)
-		
+
 		if err != nil {
 			//s := fmt.Sprintf("Error, user %#v, error {{err}}", c)
 			//return nil, errwrap.Wrapf(s, err)
 			return nil, errwrap.Wrapf("error in Connection waiting for cluster: {{err}}", err)
 		}
 	}
-	
+
 	return c.cluster, nil
 }
 

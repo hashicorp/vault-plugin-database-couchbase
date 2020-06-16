@@ -1,12 +1,12 @@
 package couchbase
 
 import (
-     	"fmt"
-     	"encoding/base64"
+	"encoding/base64"
 	"encoding/json"
-	"net/http"
-	"io/ioutil"
+	"fmt"
 	"github.com/hashicorp/go-version"
+	"io/ioutil"
+	"net/http"
 )
 
 func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bool, err error) {
@@ -14,9 +14,9 @@ func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bo
 	//[TODO] handle list of hostnames
 
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s@%s:8091/pools", username, password, hostname))
-        if err != nil {
-                return false, err
-        }
+	if err != nil {
+		return false, err
+	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -32,7 +32,7 @@ func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bo
 		return false, err
 	}
 	v, err := version.NewVersion(data.ImplementationVersion)
-	
+
 	v650, err := version.NewVersion("6.5.0-0000")
 	if err != nil {
 		return false, err
@@ -47,9 +47,9 @@ func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bo
 
 func getRootCAfromCouchbase(url string) (Base64pemCA string, err error) {
 	resp, err := http.Get(url)
-        if err != nil {
-                return "", err
-        }
+	if err != nil {
+		return "", err
+	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
