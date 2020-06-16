@@ -1,9 +1,6 @@
 package couchbase
 
 import (
-	"encoding/base64"
-	"net/http"
-	"io/ioutil"
 	"fmt"
 	"context"
 	"testing"
@@ -19,6 +16,7 @@ import (
 
 var containerInitialized bool = false
 var cleanup func() = func(){}
+var pre_6dot5 = false // check for Pre 6.5.0 Couchbase
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
@@ -111,13 +109,21 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	return cleanup, "0.0.0.0", 0
 }
 
+func TestGetCouchbaseVersion(t *testing.T) {
+	var err error
+	pre_6dot5, err = CheckForOldCouchbaseVersion("127.0.0.1", "Administrator", "Admin123")
+	if err != nil {
+		t.Fatalf("Failed to detect Couchbase Version: %s", err)
+	}
+	log.Printf("Couchbase pre 6.5.0 is %t", pre_6dot5)
+}
 
-func testCouchbaseDB_Initialize(t *testing.T, connectionDetails map[string]interface{}) {
+func testCouchbaseDB_Initialize(t *testing.T, connectionDetails map[string]interface{}) (err error) {
 
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err = db.Init(context.Background(), connectionDetails, true)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		return err
 	}
 
 	if !db.Initialized {
@@ -128,6 +134,7 @@ func testCouchbaseDB_Initialize(t *testing.T, connectionDetails map[string]inter
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	return nil
 }
 func TestCouchbaseDB_Initialize_TLS(t *testing.T) {
 	log.Printf("Testing TLS Init()")
@@ -155,7 +162,10 @@ func TestCouchbaseDB_Initialize_TLS(t *testing.T) {
 		"insecure_tls":     false,
 		"base64pem":        base64pemRootCA,
 	}
-	testCouchbaseDB_Initialize(t, connectionDetails)
+	err = testCouchbaseDB_Initialize(t, connectionDetails)
+	if err != nil && pre_6dot5 {
+		log.Printf("Testing TLS Init() failed as expected (no Bucket_name set)")
+	}
 }
 func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
 	log.Printf("Testing plain text Init()")
@@ -170,7 +180,12 @@ func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
 		"username":         "Administrator",
 		"password":         "Admin123",
 	}
-	testCouchbaseDB_Initialize(t, connectionDetails)
+	err := testCouchbaseDB_Initialize(t, connectionDetails)
+
+	if err != nil && pre_6dot5 {
+		log.Printf("Testing TLS Init() failed as expected (no Bucket_name set)")
+	}
+
 }
 func TestCouchbaseDB_Initialize_Pre6dot5TLS(t *testing.T) {
 	log.Printf("Testing TLS Pre 6.5 Init()")
@@ -232,7 +247,10 @@ func TestCouchbaseDB_CreateUser(t *testing.T) {
 		"username":         "Administrator",
 		"password":         "Admin123",
 	}
-
+	if pre_6dot5 {
+		connectionDetails["bucket_name"] = "foo"
+	}
+	
 	db := new()
 	_, err := db.Init(context.Background(), connectionDetails, true)
 	if err != nil {
@@ -281,9 +299,13 @@ func testCredsExist(t *testing.T, username string, password string) error {
 		"port":             port,
 		"username":         username,
 		"password":         password,
-		"protocol_version": 4,
 	}
+	if pre_6dot5 {
+		connectionDetails["bucket_name"] = "foo"
+	}
+
 	time.Sleep(1 * time.Second) // a brief pause to let couchbase finish creating the account
+	
 	db := new()
 	_, err := db.Init(context.Background(), connectionDetails, true)
 	if err != nil {
@@ -309,7 +331,9 @@ func testRevokeUser(t *testing.T, username string) error {
 		"port":             port,
 		"username":         "Administrator",
 		"password":         "Admin123",
-		"protocol_version": 4,
+	}
+	if pre_6dot5 {
+		connectionDetails["bucket_name"] = "foo"
 	}
 
 	db := new()
@@ -322,10 +346,7 @@ func testRevokeUser(t *testing.T, username string) error {
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{
-		Creation:   []string{testCouchbaseRole},
-		Revocation: []string{"foo"},
-	}
+	statements := dbplugin.Statements{}
 
 	err = db.RevokeUser(context.Background(), statements, username)
 	if err != nil {
@@ -334,11 +355,11 @@ func testRevokeUser(t *testing.T, username string) error {
 	return nil
 }
 
-func TestCouchbaseDB_CreateUser_plusRole(t *testing.T) {
+func TestCouchbaseDB_CreateUser_DefaultRole(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing CreateUser_plusRole()")
+	log.Printf("Testing CreateUser_DefaultRole()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
@@ -346,7 +367,9 @@ func TestCouchbaseDB_CreateUser_plusRole(t *testing.T) {
 		"port":             port,
 		"username":         "Administrator",
 		"password":         "Admin123",
-		"protocol_version": 4,
+	}
+	if pre_6dot5 {
+		connectionDetails["bucket_name"] = "foo"
 	}
 
 	db := new()
@@ -360,7 +383,7 @@ func TestCouchbaseDB_CreateUser_plusRole(t *testing.T) {
 	}
 
 	statements := dbplugin.Statements{
-		Creation: []string{testCouchbaseRole},
+		Creation: []string{},
 	}
 
 	usernameConfig := dbplugin.UsernameConfig{
@@ -397,7 +420,9 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 		"port":             port,
 		"username":         "rotate-root",
 		"password":         "rotate-rootpassword",
-		"protocol_version": 4,
+	}
+	if pre_6dot5 {
+		connectionDetails["bucket_name"] = "foo"
 	}
 
 	db := new()
@@ -443,7 +468,9 @@ func testCouchbaseDB_SetCredentials(t *testing.T, username, password string) {
 		"port":             port,
 		"username":         "Administrator",
 		"password":         "Admin123",
-		"protocol_version": 4,
+	}
+	if pre_6dot5 {
+		connectionDetails["bucket_name"] = "foo"
 	}
 
 	db := new()
@@ -483,7 +510,7 @@ func testCouchbaseDB_SetCredentials(t *testing.T, username, password string) {
 	db.Close()
 
 	if err := testCredsExist(t, username, password); err != nil {
-		t.Fatalf("Could not connect with new credentials: %s", err)
+		t.Fatalf("Could not connect with rotated credentials: %s", err)
 	}
 }
 
@@ -515,15 +542,3 @@ func TestCouchbaseDB_cleanup(t *testing.T) {
 
 const testCouchbaseRole = `[{"name":"ro_admin"},{"name":"bucket_admin","bucket":"foo"}]`
 
-func getRootCAfromCouchbase(url string) (Base64pemCA string, err error) {
-	resp, err := http.Get(url)
-        if err != nil {
-                return "", err
-        }
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(body), nil
-}

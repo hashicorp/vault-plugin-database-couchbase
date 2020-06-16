@@ -2,7 +2,7 @@ package couchbase
 
 import (
      	"fmt"
-     	//"encoding/base64"
+     	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"io/ioutil"
@@ -43,4 +43,17 @@ func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bo
 	}
 	return false, nil
 
+}
+
+func getRootCAfromCouchbase(url string) (Base64pemCA string, err error) {
+	resp, err := http.Get(url)
+        if err != nil {
+                return "", err
+        }
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(body), nil
 }

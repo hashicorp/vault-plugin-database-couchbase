@@ -148,7 +148,7 @@ func (c *CouchbaseDB) SetCredentials(ctx context.Context, statements dbplugin.St
 	return username, password, nil
 }
 
-func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statements, usernameConfig dbplugin.UsernameConfig, expiration time.Time) (username string, password string, err error) {
+func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statements, usernameConfig dbplugin.UsernameConfig, _ time.Time) (username string, password string, err error) {
 	// Grab the lock
 	c.Lock()
 	defer c.Unlock()
@@ -156,8 +156,7 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 	statements = dbutil.StatementCompatibilityHelper(statements)
 
 	if len(statements.Creation) == 0 {
-		statements.Creation[0] = defaultCouchbaseUserRole
-		//return "", "", dbutil.ErrEmptyCreationStatement
+		statements.Creation = append(statements.Creation, defaultCouchbaseUserRole)
 	}
 
 	jsonRoleData := []byte(statements.Creation[0])
@@ -198,7 +197,7 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 		DisplayName: usernameConfig.DisplayName,
 		Password:    password,
 		Roles:       roles,
-		Groups:      []string{""},
+		Groups:      []string{},
 	}
 
 	err = mgr.UpsertUser(user,

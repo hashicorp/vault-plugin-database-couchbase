@@ -72,17 +72,7 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, config map[str
 			return nil, fmt.Errorf("hosts list must start with couchbases:// for TLS connection")
 		}
 	}
-
-	//pre_6dot5, err := CheckForOldCouchbaseVersion(c.Hosts, c.Username, c.Password)
-	pre_6dot5, err := CheckForOldCouchbaseVersion("127.0.0.1", "Administrator", "Admin123")
-	if err != nil {
-		return nil, errwrap.Wrapf("error checking couchbase version: {{err}}", err)
-	}
 	
-	if c.Bucket_name == "" && pre_6dot5 {
-		return nil, fmt.Errorf("when connecting to a couchbase db pre version 6.5.0 a Bucked_name must be provided.")
-	}
-
 	c.Initialized = true
 
 	if verifyConnection {
