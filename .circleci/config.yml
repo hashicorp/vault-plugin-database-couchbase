@@ -33,5 +33,5 @@ jobs:
     # specify any bash command here prefixed with `run: `
     - run: go get -v -t -d ./...
     - run: |
-       echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
+       docker login --username $DOCKER_USER -p $DOCKER_PASS
        go test -v ./...
