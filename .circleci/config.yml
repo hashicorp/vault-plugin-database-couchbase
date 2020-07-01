@@ -33,5 +33,5 @@ jobs:
     # specify any bash command here prefixed with `run: `
     - run: go get -v -t -d ./...
     - run: |
-       docker login --username $DOCKER_USER -p $DOCKER_PASS
+       docker pull docker.io/fhitchen/vault-couchbase
        go test -v ./...
