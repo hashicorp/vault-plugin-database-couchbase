@@ -34,4 +34,7 @@ jobs:
     - run: go get -v -t -d ./...
     - run: |
        docker pull docker.io/fhitchen/vault-couchbase
+       docker run -d --name db -p 18091-18096:18091-18096 -p 11207:11207  -p 8091-8094:8091-8094 -p 11210:11210 docker.io/fhitchen/vault-couchbase
+       sleep 30
+       export COUCHBASE_HOST=localhost
        go test -v ./...
