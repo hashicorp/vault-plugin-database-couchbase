@@ -110,8 +110,11 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 }
 
 func TestGetCouchbaseVersion(t *testing.T) {
+
+	_, address, _ := prepareCouchbaseTestContainer(t)
+
 	var err error
-	pre_6dot5, err = CheckForOldCouchbaseVersion("0.0.0.0", "Administrator", "Admin123")
+	pre_6dot5, err = CheckForOldCouchbaseVersion(address, "Administrator", "Admin123")
 	if err != nil {
 		t.Fatalf("Failed to detect Couchbase Version: %s", err)
 	}
