@@ -78,7 +78,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		docker.CleanupResource(t, pool, resource)
 	}
 
-	time.Sleep(60 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	containerInitialized = true
 
@@ -111,7 +111,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 
 func TestGetCouchbaseVersion(t *testing.T) {
 	var err error
-	pre_6dot5, err = CheckForOldCouchbaseVersion("127.0.0.1", "Administrator", "Admin123")
+	pre_6dot5, err = CheckForOldCouchbaseVersion("0.0.0.0", "Administrator", "Admin123")
 	if err != nil {
 		t.Fatalf("Failed to detect Couchbase Version: %s", err)
 	}
