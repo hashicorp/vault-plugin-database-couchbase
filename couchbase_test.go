@@ -78,7 +78,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		docker.CleanupResource(t, pool, resource)
 	}
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(60 * time.Second)
 
 	containerInitialized = true
 
