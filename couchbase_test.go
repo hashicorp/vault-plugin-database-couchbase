@@ -110,8 +110,11 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 }
 
 func TestGetCouchbaseVersion(t *testing.T) {
+
+	_, address, _ := prepareCouchbaseTestContainer(t)
+
 	var err error
-	pre_6dot5, err = CheckForOldCouchbaseVersion("127.0.0.1", "Administrator", "Admin123")
+	pre_6dot5, err = CheckForOldCouchbaseVersion(address, "Administrator", "Admin123")
 	if err != nil {
 		t.Fatalf("Failed to detect Couchbase Version: %s", err)
 	}
@@ -408,6 +411,157 @@ func TestCouchbaseDB_CreateUser_DefaultRole(t *testing.T) {
 	}
 }
 
+func TestCouchbaseDB_CreateUser_plusRole(t *testing.T) {
+	if os.Getenv("VAULT_ACC") == "" {
+		t.SkipNow()
+	}
+	log.Printf("Testing CreateUser_plusRole()")
+	_, address, port := prepareCouchbaseTestContainer(t)
+
+	connectionDetails := map[string]interface{}{
+		"hosts":            address,
+		"port":             port,
+		"username":         "Administrator",
+		"password":         "Admin123",
+		"protocol_version": 4,
+	}
+
+	db := new()
+	_, err := db.Init(context.Background(), connectionDetails, true)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !db.Initialized {
+		t.Fatal("Database should be initialized")
+	}
+
+	statements := dbplugin.Statements{
+		Creation: []string{testCouchbaseRole},
+	}
+
+	usernameConfig := dbplugin.UsernameConfig{
+		DisplayName: "test",
+		RoleName:    "test",
+	}
+
+	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	db.Close()
+
+	if err := testCredsExist(t, username, password); err != nil {
+		t.Fatalf("Could not connect with new credentials: %s", err)
+	}
+
+	err = testRevokeUser(t, username)
+	if err != nil {
+		t.Fatalf("Could not revoke user: %s", username)
+	}
+}
+// g1 & g2 must exist in the database.
+func TestCouchbaseDB_CreateUser_groupOnly(t *testing.T) {
+	if os.Getenv("VAULT_ACC") == "" {
+		t.SkipNow()
+	}
+	log.Printf("Testing CreateUser_groupOnly()")
+	_, address, port := prepareCouchbaseTestContainer(t)
+
+	connectionDetails := map[string]interface{}{
+		"hosts":            address,
+		"port":             port,
+		"username":         "Administrator",
+		"password":         "Admin123",
+		"protocol_version": 4,
+	}
+
+	db := new()
+	_, err := db.Init(context.Background(), connectionDetails, true)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !db.Initialized {
+		t.Fatal("Database should be initialized")
+	}
+
+	statements := dbplugin.Statements{
+		Creation: []string{testCouchbaseGroup},
+	}
+
+	usernameConfig := dbplugin.UsernameConfig{
+		DisplayName: "test",
+		RoleName:    "test",
+	}
+
+	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	db.Close()
+
+	if err := testCredsExist(t, username, password); err != nil {
+		t.Fatalf("Could not connect with new credentials: %s", err)
+	}
+
+	err = testRevokeUser(t, username)
+	if err != nil {
+		t.Fatalf("Could not revoke user: %s", username)
+	}
+}
+func TestCouchbaseDB_CreateUser_roleAndGroup(t *testing.T) {
+	if os.Getenv("VAULT_ACC") == "" {
+		t.SkipNow()
+	}
+	log.Printf("Testing CreateUser_roleAndGroup()")
+	_, address, port := prepareCouchbaseTestContainer(t)
+
+	connectionDetails := map[string]interface{}{
+		"hosts":            address,
+		"port":             port,
+		"username":         "Administrator",
+		"password":         "Admin123",
+		"protocol_version": 4,
+	}
+
+	db := new()
+	_, err := db.Init(context.Background(), connectionDetails, true)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !db.Initialized {
+		t.Fatal("Database should be initialized")
+	}
+
+	statements := dbplugin.Statements{
+		Creation: []string{testCouchbaseRoleAndGroup},
+	}
+
+	usernameConfig := dbplugin.UsernameConfig{
+		DisplayName: "test",
+		RoleName:    "test",
+	}
+
+	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	db.Close()
+
+	if err := testCredsExist(t, username, password); err != nil {
+		t.Fatalf("Could not connect with new credentials: %s", err)
+	}
+
+	err = testRevokeUser(t, username)
+	if err != nil {
+		t.Fatalf("Could not revoke user: %s", username)
+	}
+}
 func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
@@ -535,4 +689,6 @@ func TestCouchbaseDB_cleanup(t *testing.T) {
 	cleanup()
 }
 
-const testCouchbaseRole = `[{"name":"ro_admin"},{"name":"bucket_admin","bucket":"foo"}]`
+const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"foo"}]}`
+const testCouchbaseGroup = `{"groups":["g1", "g2"]}`
+const testCouchbaseRoleAndGroup = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"foo"}],"groups":["g1", "g2"]}`

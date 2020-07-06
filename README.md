@@ -66,15 +66,14 @@ $ vault write database/config/secure-couchbase plugin_name="couchbase-database-p
 $ vault write -force database/rotate-root/secure-couchbase
 ```
 ### Dynamic Role Creation
-When you create roles, you need to provide a JSON string containing the Couchbase RBAC roles which are documented https://docs.couchbase.com/server/6.5/learn/security/roles.html.
+When you create roles, you need to provide a JSON string containing the Couchbase RBAC roles which are documented https://docs.couchbase.com/server/6.5/learn/security/roles.html. From Couchbase 6.5 groups are supported and the creation statement can contain just roles or just groups or a mixture of the two. **Note** to use a group, it must have been created in the database previously.
 ```
-# if a creation_statement is not provided the user account will default to read only admin, '[{"name":"ro_admin"}]'
-
+# if a creation_statement is not provided the user account will default to read only admin, '{"roles":[{"role":"ro_admin"}]}'
 $ vault write database/roles/insecure-couchbase-admin-role db_name=insecure-couchbase \
-        default_ttl="5m" max_ttl="1h" creation_statements='[{"name":"admin"}]'
+        default_ttl="5m" max_ttl="1h" creation_statements='{"roles":[{"role":"admin"}],"groups":["Supervisor"]}'
         
 $ vault write database/roles/insecure-couchbase-default-bucket-role db_name=insecure-couchbase \
-        default_ttl="5m" max_ttl="1h" creation_statements='[{"name":"bucket_full_access","bucket":"default"}]'
+        default_ttl="5m" max_ttl="1h" creation_statements='{"roles":[{"role":"bucket_full_access","bucket_name":"default"}]}'
 Success! Data written to: database/roles/insecure-couchbase-default-bucket-role
 ```
 To retrieve the credentials for the dynamic accounts

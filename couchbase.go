@@ -13,19 +13,23 @@ import (
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
 	"github.com/hashicorp/vault/sdk/database/helper/dbutil"
-	"github.com/mitchellh/mapstructure"
 )
 
 var _ = fmt.Printf
 
 const (
 	couchbaseTypeName        = "couchbase"
-	defaultCouchbaseUserRole = `[{"name":"ro_admin"}]`
+	defaultCouchbaseUserRole = `{"Roles": [{"role":"ro_admin"}]}`
 )
 
 var (
 	_ dbplugin.Database = &CouchbaseDB{}
 )
+
+type RolesAndGroups struct {
+	Roles   []gocb.Role `json:"roles"`
+	Groups   []string `json:"groups"`
+}
 
 // New implements builtinplugins.BuiltinFactory
 func New() (interface{}, error) {
@@ -159,17 +163,13 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 		statements.Creation = append(statements.Creation, defaultCouchbaseUserRole)
 	}
 
-	jsonRoleData := []byte(statements.Creation[0])
-	var v []interface{}
-	var roles []gocb.Role
-	err = json.Unmarshal(jsonRoleData, &v)
+	jsonRoleAndGroupData := []byte(statements.Creation[0])
+
+	var rag RolesAndGroups
+
+	err = json.Unmarshal(jsonRoleAndGroupData, &rag)
 	if err != nil {
 		return "", "", errwrap.Wrapf("error unmarshaling JSON: {{err}}", err)
-	}
-
-	err = mapstructure.Decode(v, &roles)
-	if err != nil {
-		return "", "", errwrap.Wrapf("error mapping roles: {{err}}", err)
 	}
 
 	username, err = c.GenerateUsername(usernameConfig)
@@ -196,8 +196,8 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 		Username:    username,
 		DisplayName: usernameConfig.DisplayName,
 		Password:    password,
-		Roles:       roles,
-		Groups:      []string{},
+		Roles:       rag.Roles,
+		Groups:      rag.Groups,
 	}
 
 	err = mgr.UpsertUser(user,
