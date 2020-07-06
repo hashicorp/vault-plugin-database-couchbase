@@ -169,7 +169,7 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 
 	err = json.Unmarshal(jsonRoleAndGroupData, &rag)
 	if err != nil {
-		return "", "", errwrap.Wrapf("error unmarshaling JSON: {{err}}", err)
+		return "", "", errwrap.Wrapf("error unmarshaling roles and groups creation statement JSON: {{err}}", err)
 	}
 
 	username, err = c.GenerateUsername(usernameConfig)
