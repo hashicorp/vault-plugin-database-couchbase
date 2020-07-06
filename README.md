@@ -1,5 +1,7 @@
 # vault-plugin-database-couchbase
 
+[![CircleCI](https://circleci.com/gh/fhitchen/vault-plugin-database-couchbase-1.svg?style=svg)](https://circleci.com/gh/fhitchen/vault-plugin-database-couchbase-1)
+
 A [Vault](https://www.vaultproject.io) plugin for Couchbase
 
 This project uses the database plugin interface introduced in Vault version 0.7.1.
