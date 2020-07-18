@@ -26,7 +26,7 @@ type couchbaseDBConnectionProducer struct {
 	TLS          bool   `json:"tls" structs:"tls" mapstructure:"tls"`
 	Insecure_TLS bool   `json:"insecure_tls" structs:"insecure_tls" mapstructure:"insecure_tls"`
 	Base64Pem    string `json:"base64pem" structs:"base64pem" mapstructure:"base64pem"`
-	Bucket_name  string `json:"bucket_name" structs:bucket_name" mapstructure:bucket_name"`
+	Bucket_name  string `json:"bucket_name" structs:"bucket_name" mapstructure:"bucket_name"`
 
 	Initialized bool
 	rawConfig   map[string]interface{}
