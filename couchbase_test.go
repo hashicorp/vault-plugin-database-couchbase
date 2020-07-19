@@ -3,7 +3,6 @@ package couchbase
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -16,7 +15,9 @@ import (
 
 var containerInitialized bool = false
 var cleanup func() = func() {}
-var pre_6dot5 = false // check for Pre 6.5.0 Couchbase
+var pre6dot5 = false // check for Pre 6.5.0 Couchbase
+var adminUsername = "Administrator"
+var adminPassword = "Admin123"
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
@@ -114,11 +115,11 @@ func TestGetCouchbaseVersion(t *testing.T) {
 	_, address, _ := prepareCouchbaseTestContainer(t)
 
 	var err error
-	pre_6dot5, err = CheckForOldCouchbaseVersion(address, "Administrator", "Admin123")
+	pre6dot5, err = CheckForOldCouchbaseVersion(address, adminUsername, adminPassword)
 	if err != nil {
 		t.Fatalf("Failed to detect Couchbase Version: %s", err)
 	}
-	log.Printf("Couchbase pre 6.5.0 is %t", pre_6dot5)
+	t.Logf("Couchbase pre 6.5.0 is %t", pre6dot5)
 }
 
 func testCouchbaseDB_Initialize(t *testing.T, connectionDetails map[string]interface{}) (err error) {
@@ -140,7 +141,7 @@ func testCouchbaseDB_Initialize(t *testing.T, connectionDetails map[string]inter
 	return nil
 }
 func TestCouchbaseDB_Initialize_TLS(t *testing.T) {
-	log.Printf("Testing TLS Init()")
+	t.Log("Testing TLS Init()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
 
@@ -159,19 +160,19 @@ func TestCouchbaseDB_Initialize_TLS(t *testing.T) {
 	connectionDetails := map[string]interface{}{
 		"hosts":        address,
 		"port":         port,
-		"username":     "Administrator",
-		"password":     "Admin123",
+		"username":     adminUsername,
+		"password":     adminPassword,
 		"tls":          true,
 		"insecure_tls": false,
 		"base64pem":    base64pemRootCA,
 	}
 	err = testCouchbaseDB_Initialize(t, connectionDetails)
-	if err != nil && pre_6dot5 {
-		log.Printf("Testing TLS Init() failed as expected (no Bucket_name set)")
+	if err != nil && pre6dot5 {
+		t.Log("Testing TLS Init() failed as expected (no Bucket_name set)")
 	}
 }
 func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
-	log.Printf("Testing plain text Init()")
+	t.Log("Testing plain text Init()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
 
@@ -180,18 +181,18 @@ func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
 		"port":     port,
-		"username": "Administrator",
-		"password": "Admin123",
+		"username": adminUsername,
+		"password": adminPassword,
 	}
 	err := testCouchbaseDB_Initialize(t, connectionDetails)
 
-	if err != nil && pre_6dot5 {
-		log.Printf("Testing TLS Init() failed as expected (no Bucket_name set)")
+	if err != nil && pre6dot5 {
+		t.Log("Testing TLS Init() failed as expected (no Bucket_name set)")
 	}
 
 }
 func TestCouchbaseDB_Initialize_Pre6dot5TLS(t *testing.T) {
-	log.Printf("Testing TLS Pre 6.5 Init()")
+	t.Log("Testing TLS Pre 6.5 Init()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
 
@@ -210,8 +211,8 @@ func TestCouchbaseDB_Initialize_Pre6dot5TLS(t *testing.T) {
 	connectionDetails := map[string]interface{}{
 		"hosts":        address,
 		"port":         port,
-		"username":     "Administrator",
-		"password":     "Admin123",
+		"username":     adminUsername,
+		"password":     adminPassword,
 		"tls":          true,
 		"insecure_tls": false,
 		"base64pem":    base64pemRootCA,
@@ -220,7 +221,7 @@ func TestCouchbaseDB_Initialize_Pre6dot5TLS(t *testing.T) {
 	testCouchbaseDB_Initialize(t, connectionDetails)
 }
 func TestCouchbaseDB_Initialize_Pre6dot5NoTLS(t *testing.T) {
-	log.Printf("Testing Pre 6.5 Init()")
+	t.Log("Testing Pre 6.5 Init()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
 
@@ -229,8 +230,8 @@ func TestCouchbaseDB_Initialize_Pre6dot5NoTLS(t *testing.T) {
 	connectionDetails := map[string]interface{}{
 		"hosts":       address,
 		"port":        port,
-		"username":    "Administrator",
-		"password":    "Admin123",
+		"username":    adminUsername,
+		"password":    adminPassword,
 		"bucket_name": "foo",
 	}
 	testCouchbaseDB_Initialize(t, connectionDetails)
@@ -240,17 +241,17 @@ func TestCouchbaseDB_CreateUser(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing CreateUser()")
+	t.Log("Testing CreateUser()")
 
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
 		"port":     port,
-		"username": "Administrator",
-		"password": "Admin123",
+		"username": adminUsername,
+		"password": adminPassword,
 	}
-	if pre_6dot5 {
+	if pre6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
@@ -294,7 +295,7 @@ func testCredsExist(t *testing.T, username string, password string) error {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing testCredsExist()")
+	t.Log("Testing testCredsExist()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
@@ -303,7 +304,7 @@ func testCredsExist(t *testing.T, username string, password string) error {
 		"username": username,
 		"password": password,
 	}
-	if pre_6dot5 {
+	if pre6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
@@ -326,16 +327,16 @@ func testRevokeUser(t *testing.T, username string) error {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing RevokeUser()")
+	t.Log("Testing RevokeUser()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
 		"port":     port,
-		"username": "Administrator",
-		"password": "Admin123",
+		"username": adminUsername,
+		"password": adminPassword,
 	}
-	if pre_6dot5 {
+	if pre6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
@@ -362,16 +363,16 @@ func TestCouchbaseDB_CreateUser_DefaultRole(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing CreateUser_DefaultRole()")
+	t.Log("Testing CreateUser_DefaultRole()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
 		"port":     port,
-		"username": "Administrator",
-		"password": "Admin123",
+		"username": adminUsername,
+		"password": adminPassword,
 	}
-	if pre_6dot5 {
+	if pre6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
@@ -415,14 +416,14 @@ func TestCouchbaseDB_CreateUser_plusRole(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing CreateUser_plusRole()")
+	t.Log("Testing CreateUser_plusRole()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":            address,
 		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"username":         adminUsername,
+		"password":         adminPassword,
 		"protocol_version": 4,
 	}
 
@@ -466,14 +467,14 @@ func TestCouchbaseDB_CreateUser_groupOnly(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing CreateUser_groupOnly()")
+	t.Log("Testing CreateUser_groupOnly()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":            address,
 		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"username":         adminUsername,
+		"password":         adminPassword,
 		"protocol_version": 4,
 	}
 
@@ -516,14 +517,14 @@ func TestCouchbaseDB_CreateUser_roleAndGroup(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing CreateUser_roleAndGroup()")
+	t.Log("Testing CreateUser_roleAndGroup()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":            address,
 		"port":             port,
-		"username":         "Administrator",
-		"password":         "Admin123",
+		"username":         adminUsername,
+		"password":         adminPassword,
 		"protocol_version": 4,
 	}
 
@@ -566,7 +567,7 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
-	log.Printf("Testing RotateRootCredentials()")
+	t.Log("Testing RotateRootCredentials()")
 	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
@@ -575,7 +576,7 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 		"username": "rotate-root",
 		"password": "rotate-rootpassword",
 	}
-	if pre_6dot5 {
+	if pre6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
@@ -589,6 +590,8 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 		t.Fatal("Database should be initialized")
 	}
 
+	defer db.Close()
+
 	statements := []string{""}
 
 	password, err := db.RotateRootCredentials(context.Background(), statements)
@@ -596,29 +599,27 @@ func TestCouchbaseDB_RotateRootCredentials(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// defer setting the password back in case the test fails.
+	defer testCouchbaseDBSetCredentials(t, "rotate-root", "rotate-rootpassword")
+
 	if err := testCredsExist(t, db.Username, password["password"].(string)); err != nil {
 		t.Fatalf("Could not connect with new RotatedRootcredentials: %s", err)
 	}
-	// Set password back
-	testCouchbaseDB_SetCredentials(t, "rotate-root", "rotate-rootpassword")
-
-	db.Close()
-
 }
 
-func testCouchbaseDB_SetCredentials(t *testing.T, username, password string) {
+func testCouchbaseDBSetCredentials(t *testing.T, username, password string) {
 
 	_, address, port := prepareCouchbaseTestContainer(t)
 
-	log.Printf("Testing SetCredentials()")
+	t.Log("Testing SetCredentials()")
 
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
 		"port":     port,
-		"username": "Administrator",
-		"password": "Admin123",
+		"username": adminUsername,
+		"password": adminPassword,
 	}
-	if pre_6dot5 {
+	if pre6dot5 {
 		connectionDetails["bucket_name"] = "foo"
 	}
 
@@ -663,27 +664,13 @@ func testCouchbaseDB_SetCredentials(t *testing.T, username, password string) {
 	}
 }
 
-func TestCouchbaseDB_SetCredentials(t *testing.T) {
+func TestCouchbaseDBSetCredentials(t *testing.T) {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
 
-	testCouchbaseDB_SetCredentials(t, "vault-edu", "password")
+	testCouchbaseDBSetCredentials(t, "vault-edu", "password")
 }
-
-/*
-func TestCouchbaseDB_StaticRole_Rotations(t *testing.T) {
-	cleanup, connURL := postgreshelper.PrepareTestContainer(t, "latest")
-	defer cleanup()
-	uc := userCreator(func(t *testing.T, username, password string) {
-		createTestPGUser(t, connURL, username, password, testRoleStaticCreate)
-	})
-	testBackend_StaticRole_Rotations(t, uc, map[string]interface{}{
-		"connection_url": connURL,
-		"plugin_name":    "postgresql-database-plugin",
-	})
-}
-*/
 // Last test to cleanup the db
 func TestCouchbaseDB_cleanup(t *testing.T) {
 	cleanup()

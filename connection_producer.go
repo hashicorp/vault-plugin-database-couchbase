@@ -24,7 +24,7 @@ type couchbaseDBConnectionProducer struct {
 	Username     string `json:"username" structs:"username" mapstructure:"username"`
 	Password     string `json:"password"   structs:"password" mapstructure:"password"`
 	TLS          bool   `json:"tls" structs:"tls" mapstructure:"tls"`
-	Insecure_TLS bool   `json:"insecure_tls" structs:"insecure_tls" mapstructure:"insecure_tls"`
+	InsecureTLS  bool   `json:"insecure_tls" structs:"insecure_tls" mapstructure:"insecure_tls"`
 	Base64Pem    string `json:"base64pem" structs:"base64pem" mapstructure:"base64pem"`
 	Bucket_name  string `json:"bucket_name" structs:"bucket_name" mapstructure:"bucket_name"`
 
@@ -101,21 +101,21 @@ func (c *couchbaseDBConnectionProducer) Connection(_ context.Context) (interface
 	}
 	var err error
 	var sec gocb.SecurityConfig
-	var PEM []byte
+	var pem []byte
 
 	if c.TLS {
-		PEM, err = base64.StdEncoding.DecodeString(c.Base64Pem)
+		pem, err = base64.StdEncoding.DecodeString(c.Base64Pem)
 		if err != nil {
 			return nil, errwrap.Wrapf("error decoding Base64Pem: {{err}}", err)
 		}
 		rootCAs := x509.NewCertPool()
-		ok := rootCAs.AppendCertsFromPEM([]byte(PEM))
+		ok := rootCAs.AppendCertsFromPEM([]byte(pem))
 		if !ok {
-			return nil, fmt.Errorf("Failed to parse root certificate")
+			return nil, fmt.Errorf("failed to parse root certificate")
 		}
 		sec = gocb.SecurityConfig{
 			TLSRootCAs:    rootCAs,
-			TLSSkipVerify: c.Insecure_TLS,
+			TLSSkipVerify: c.InsecureTLS,
 		}
 	}
 
@@ -144,8 +144,6 @@ func (c *couchbaseDBConnectionProducer) Connection(_ context.Context) (interface
 		err = c.cluster.WaitUntilReady(5*time.Second, nil)
 
 		if err != nil {
-			//s := fmt.Sprintf("Error, user %#v, error {{err}}", c)
-			//return nil, errwrap.Wrapf(s, err)
 			return nil, errwrap.Wrapf("error in Connection waiting for cluster: {{err}}", err)
 		}
 	}

@@ -61,7 +61,7 @@ $ vault write database/config/secure-couchbase plugin_name="couchbase-database-p
       hosts="couchbases://localhost" username="Administrator" password="password" \
       tls=true base64pem=${BASE64PEM} \
       bucket_name="default" \ # only needed for pre-6.5.0 clusters
-      allowed_roles="secure-couchbase-admin-role,secure-couchbase-*-bucket-role"
+      allowed_roles="secure-couchbase-admin-role,secure-couchbase-*-bucket-role,static-account"
       
 # You should consider rotating the admin password. Note that if you do, the new password will never be made available
 # through Vault, so you should create a vault-specific database admin user for this.

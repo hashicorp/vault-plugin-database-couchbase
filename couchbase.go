@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
@@ -14,8 +13,6 @@ import (
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
 	"github.com/hashicorp/vault/sdk/database/helper/dbutil"
 )
-
-var _ = fmt.Printf
 
 const (
 	couchbaseTypeName        = "couchbase"
@@ -245,17 +242,12 @@ func (c *CouchbaseDB) RevokeUser(ctx context.Context, statements dbplugin.Statem
 	return nil
 }
 
-func (c *CouchbaseDB) RotateRootCredentials(ctx context.Context, statements []string) (map[string]interface{}, error) {
+func (c *CouchbaseDB) RotateRootCredentials(ctx context.Context, _ []string) (map[string]interface{}, error) {
 	c.Lock()
 	defer c.Unlock()
 
 	if len(c.Username) == 0 || len(c.Password) == 0 {
 		return nil, errors.New("username and password are required to rotate")
-	}
-
-	rotateStatements := statements
-	if len(rotateStatements) == 0 {
-		rotateStatements = []string{""}
 	}
 
 	password, err := c.GeneratePassword()
