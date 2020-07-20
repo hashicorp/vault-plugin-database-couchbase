@@ -10,6 +10,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0
+	github.com/hashicorp/go-hclog v0.12.0
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/vault v1.4.2
 	github.com/hashicorp/vault/api v1.0.5-0.20200317185738-82f498082f02

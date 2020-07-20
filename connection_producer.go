@@ -16,17 +16,17 @@ import (
 )
 
 type couchbaseDBConnectionProducer struct {
-	PublicKey    string `json:"public_key" structs:"public_key" mapstructure:"public_key"`
-	PrivateKey   string `json:"private_key" structs:"private_key" mapstructure:"private_key"`
-	ProjectID    string `json:"project_id" structs:"project_id" mapstructure:"project_id"`
-	Hosts        string `json:"hosts" structs:"hosts" mapstructure:"hosts"`
-	Port         int    `json:"port" structs:"port" mapstructure:"port"`
-	Username     string `json:"username" structs:"username" mapstructure:"username"`
-	Password     string `json:"password"   structs:"password" mapstructure:"password"`
-	TLS          bool   `json:"tls" structs:"tls" mapstructure:"tls"`
-	InsecureTLS  bool   `json:"insecure_tls" structs:"insecure_tls" mapstructure:"insecure_tls"`
-	Base64Pem    string `json:"base64pem" structs:"base64pem" mapstructure:"base64pem"`
-	Bucket_name  string `json:"bucket_name" structs:"bucket_name" mapstructure:"bucket_name"`
+	PublicKey    string `json:"public_key"`
+	PrivateKey   string `json:"private_key"`
+	ProjectID    string `json:"project_id"`
+	Hosts        string `json:"hosts"`
+	Port         int    `json:"port"`
+	Username     string `json:"username"`
+	Password     string `json:"password"`
+	TLS          bool   `json:"tls"`
+	InsecureTLS  bool   `json:"insecure_tls"`
+	Base64Pem    string `json:"base64pem"`
+	BucketName   string `json:"bucket_name"`
 
 	Initialized bool
 	rawConfig   map[string]interface{}
@@ -42,14 +42,25 @@ func (c *couchbaseDBConnectionProducer) secretValues() map[string]interface{} {
 	}
 }
 
-func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, config map[string]interface{}, verifyConnection bool) (saveConfig map[string]interface{}, err error) {
+func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, initConfig map[string]interface{}, verifyConnection bool) (saveConfig map[string]interface{}, err error) {
 
 	c.Lock()
 	defer c.Unlock()
 
-	c.rawConfig = config
+	c.rawConfig = initConfig
 
-	err = mapstructure.WeakDecode(config, c)
+	decoderConfig := &mapstructure.DecoderConfig{
+		Result: c,
+		WeaklyTypedInput: true,
+		TagName: "json",
+	}
+
+	decoder, err := mapstructure.NewDecoder(decoderConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	err = decoder.Decode(initConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +92,7 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, config map[str
 		}
 	}
 
-	return config, nil
+	return initConfig, nil
 }
 
 func (c *couchbaseDBConnectionProducer) Initialize(ctx context.Context, config map[string]interface{}, verifyConnection bool) error {
@@ -133,8 +144,8 @@ func (c *couchbaseDBConnectionProducer) Connection(_ context.Context) (interface
 	// For databases 6.0 and earlier, we will need to open a `Bucket instance before connecting to any other
 	// HTTP services such as UserManager.
 
-	if c.Bucket_name != "" {
-		bucket := c.cluster.Bucket(c.Bucket_name)
+	if c.BucketName != "" {
+		bucket := c.cluster.Bucket(c.BucketName)
 		// We wait until the bucket is definitely connected and setup.
 		err = bucket.WaitUntilReady(5*time.Second, nil)
 		if err != nil {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	hclog "github.com/hashicorp/go-hclog"
 	"os"
 
 	couchbase "github.com/fhitchen/vault-plugin-database-couchbase"
@@ -15,7 +15,9 @@ func main() {
 
 	err := couchbase.Run(apiClientMeta.GetTLSConfig())
 	if err != nil {
-		log.Println(err)
+		logger := hclog.New(&hclog.LoggerOptions{})
+
+		logger.Error("plugin shutting down", "error", err)
 		os.Exit(1)
 	}
 }

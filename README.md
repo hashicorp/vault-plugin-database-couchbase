@@ -14,7 +14,7 @@ For Linux/AMD64, pre-built binaries can be found at [the releases page](https://
 
 For other platforms, there are not currently pre-built binaries available.
 
-To build this package for any platform you will need to clone this repository and cd into the repo directory and `go build -o couchbase-database-plugin ./couchbase-database-plugin/`. To test `go test` will execute a set of basic tests against against a custom Docker version of Couchbase (fhitchen/vault-couchbase this will be replaced with an customized latest version of Couchbase when the database customization can be directly done from the test suite). If you want to run the tests against an already running couchbase instance, set the environment variable COUCHBASE_HOST before executing. Set VAULT_ACC to execute all of the tests.
+To build this package for any platform you will need to clone this repository and cd into the repo directory and `go build -o couchbase-database-plugin ./cmd/couchbase-database-plugin/`. To test `go test` will execute a set of basic tests against against a custom Docker version of Couchbase (fhitchen/vault-couchbase this will be replaced with an customized latest version of Couchbase when the database customization can be directly done from the test suite). If you want to run the tests against an already running couchbase instance, set the environment variable COUCHBASE_HOST before executing. Set VAULT_ACC to execute all of the tests.
 
 ## Installation
 

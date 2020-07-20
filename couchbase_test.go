@@ -168,7 +168,7 @@ func TestCouchbaseDB_Initialize_TLS(t *testing.T) {
 	}
 	err = testCouchbaseDB_Initialize(t, connectionDetails)
 	if err != nil && pre6dot5 {
-		t.Log("Testing TLS Init() failed as expected (no Bucket_name set)")
+		t.Log("Testing TLS Init() failed as expected (no BucketName set)")
 	}
 }
 func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
@@ -187,7 +187,7 @@ func TestCouchbaseDB_Initialize_NoTLS(t *testing.T) {
 	err := testCouchbaseDB_Initialize(t, connectionDetails)
 
 	if err != nil && pre6dot5 {
-		t.Log("Testing TLS Init() failed as expected (no Bucket_name set)")
+		t.Log("Testing TLS Init() failed as expected (no BucketName set)")
 	}
 
 }
