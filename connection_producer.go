@@ -16,17 +16,17 @@ import (
 )
 
 type couchbaseDBConnectionProducer struct {
-	PublicKey    string `json:"public_key"`
-	PrivateKey   string `json:"private_key"`
-	ProjectID    string `json:"project_id"`
-	Hosts        string `json:"hosts"`
-	Port         int    `json:"port"`
-	Username     string `json:"username"`
-	Password     string `json:"password"`
-	TLS          bool   `json:"tls"`
-	InsecureTLS  bool   `json:"insecure_tls"`
-	Base64Pem    string `json:"base64pem"`
-	BucketName   string `json:"bucket_name"`
+	PublicKey   string `json:"public_key"`
+	PrivateKey  string `json:"private_key"`
+	ProjectID   string `json:"project_id"`
+	Hosts       string `json:"hosts"`
+	Port        int    `json:"port"`
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	TLS         bool   `json:"tls"`
+	InsecureTLS bool   `json:"insecure_tls"`
+	Base64Pem   string `json:"base64pem"`
+	BucketName  string `json:"bucket_name"`
 
 	Initialized bool
 	rawConfig   map[string]interface{}
@@ -50,9 +50,9 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, initConfig map
 	c.rawConfig = initConfig
 
 	decoderConfig := &mapstructure.DecoderConfig{
-		Result: c,
+		Result:           c,
 		WeaklyTypedInput: true,
-		TagName: "json",
+		TagName:          "json",
 	}
 
 	decoder, err := mapstructure.NewDecoder(decoderConfig)

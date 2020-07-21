@@ -3,14 +3,13 @@ package couchbase
 import (
 	"context"
 	"fmt"
-	"os"
-	"testing"
-	"time"
-
 	docker "github.com/hashicorp/vault/helper/testhelpers/docker"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
+	"os"
+	"testing"
+	"time"
 )
 
 var containerInitialized bool = false
@@ -115,21 +114,21 @@ func TestDriver(t *testing.T) {
 	cleanup, address, port := prepareCouchbaseTestContainer(t)
 
 	defer cleanup()
-	
-	t.Run("Version", func(t *testing.T) {testGetCouchbaseVersion(t, address)})
 
-	t.Run("Init", func(t *testing.T) {testCouchbaseDBInitialize_TLS(t, address, port)})
-	t.Run("Init", func(t *testing.T) {testCouchbaseDBInitialize_NoTLS(t, address, port)})
-	t.Run("Init", func(t *testing.T) {testCouchbaseDBInitialize_Pre6dot5TLS(t, address, port)})
-	t.Run("Init", func(t *testing.T) {testCouchbaseDBInitialize_Pre6dot5NoTLS(t, address, port)})
-	t.Run("Create/Revoke", func(t *testing.T) {testCouchbaseDBCreateUser(t, address, port)})
-	t.Run("Create/Revoke", func(t *testing.T) {testCouchbaseDBCreateUser_DefaultRole(t, address, port)})
-	t.Run("Create/Revoke", func(t *testing.T) {testCouchbaseDBCreateUser_plusRole(t, address, port)})
-	t.Run("Create/Revoke", func(t *testing.T) {testCouchbaseDBCreateUser_groupOnly(t, address, port)})
-	t.Run("Create/Revoke", func(t *testing.T) {testCouchbaseDBCreateUser_roleAndGroup(t, address, port)})
-	t.Run("Rotate", func(t *testing.T) {testCouchbaseDBRotateRootCredentials(t, address, port)})
-	t.Run("Creds", func(t *testing.T) {testCouchbaseDBSetCredentials(t, address, port)})
-	t.Run("", func(t *testing.T) {testCouchbaseDBcleanup(t)})
+	t.Run("Version", func(t *testing.T) { testGetCouchbaseVersion(t, address) })
+
+	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_TLS(t, address, port) })
+	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_NoTLS(t, address, port) })
+	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5TLS(t, address, port) })
+	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5NoTLS(t, address, port) })
+	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser(t, address, port) })
+	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_DefaultRole(t, address, port) })
+	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_plusRole(t, address, port) })
+	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_groupOnly(t, address, port) })
+	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_roleAndGroup(t, address, port) })
+	t.Run("Rotate", func(t *testing.T) { testCouchbaseDBRotateRootCredentials(t, address, port) })
+	t.Run("Creds", func(t *testing.T) { testCouchbaseDBSetCredentials(t, address, port) })
+	t.Run("Secret", func(t *testing.T) { testConnectionProducerSecretValues(t) })
 
 }
 
@@ -471,6 +470,7 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 		t.Fatalf("Could not revoke user: %s", username)
 	}
 }
+
 // g1 & g2 must exist in the database.
 func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int) {
 	if os.Getenv("VAULT_ACC") == "" {
@@ -675,9 +675,19 @@ func testCouchbaseDBSetCredentials(t *testing.T, address string, port int) {
 
 	doCouchbaseDBSetCredentials(t, "vault-edu", "password", address, port)
 }
-// Last test to cleanup the db
-func testCouchbaseDBcleanup(t *testing.T) {
-	cleanup()
+
+func testConnectionProducerSecretValues(t *testing.T) {
+	t.Log("Testing couchbaseDBConnectionProducer.secretValues()")
+
+	cp := &couchbaseDBConnectionProducer{
+		Username: "USR",
+		Password: "PWD",
+	}
+
+	if cp.secretValues()["USR"] != "[username]" &&
+		cp.secretValues()["PWD"] != "[password]" {
+		t.Fatal("couchbaseDBConnectionProducer.secretValues() test failed.")
+	}
 }
 
 const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"foo"}]}`

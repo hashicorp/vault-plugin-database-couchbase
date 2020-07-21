@@ -24,8 +24,8 @@ var (
 )
 
 type RolesAndGroups struct {
-	Roles   []gocb.Role `json:"roles"`
-	Groups   []string `json:"groups"`
+	Roles  []gocb.Role `json:"roles"`
+	Groups []string    `json:"groups"`
 }
 
 // New implements builtinplugins.BuiltinFactory
