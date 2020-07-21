@@ -116,6 +116,13 @@ func (c *CouchbaseDB) SetCredentials(ctx context.Context, statements dbplugin.St
 		return "", "", err
 	}
 
+	// Close the database connection to ensure no new connections come in
+	defer func() {
+		if thiserr := c.close(); thiserr != nil {
+			err = thiserr
+		}
+	}()
+
 	// Get the UserManager
 
 	mgr := db.Users()
@@ -142,11 +149,6 @@ func (c *CouchbaseDB) SetCredentials(ctx context.Context, statements dbplugin.St
 		})
 
 	if err != nil {
-		return "", "", err
-	}
-
-	// Close the database connection to ensure no new connections come in
-	if err := c.close(); err != nil {
 		return "", "", err
 	}
 
@@ -189,6 +191,13 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 		return "", "", err
 	}
 
+	// Close the database connection to ensure no new connections come in
+	defer func() {
+		if thiserr := c.close(); thiserr != nil {
+			err = thiserr
+		}
+	}()
+
 	// Get the UserManager
 
 	mgr := db.Users()
@@ -210,8 +219,6 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 		return "", "", err
 	}
 
-	c.close()
-
 	return username, password, nil
 }
 
@@ -232,6 +239,13 @@ func (c *CouchbaseDB) RevokeUser(ctx context.Context, statements dbplugin.Statem
 		return err
 	}
 
+	// Close the database connection to ensure no new connections come in
+	defer func() {
+		if thiserr := c.close(); thiserr != nil {
+			err = thiserr
+		}
+	}()
+
 	// Get the UserManager
 	mgr := db.Users()
 
@@ -240,8 +254,6 @@ func (c *CouchbaseDB) RevokeUser(ctx context.Context, statements dbplugin.Statem
 	if err != nil {
 		return err
 	}
-
-	c.close()
 
 	return nil
 }
@@ -263,6 +275,13 @@ func (c *CouchbaseDB) RotateRootCredentials(ctx context.Context, _ []string) (ma
 	if err != nil {
 		return nil, err
 	}
+
+	// Close the database connection to ensure no new connections come in
+	defer func() {
+		if thiserr := c.close(); thiserr != nil {
+			err = thiserr
+		}
+	}()
 
 	// Get the UserManager
 
@@ -290,11 +309,6 @@ func (c *CouchbaseDB) RotateRootCredentials(ctx context.Context, _ []string) (ma
 		})
 
 	if err != nil {
-		return nil, err
-	}
-
-	// Close the database connection to ensure no new connections come in
-	if err := c.close(); err != nil {
 		return nil, err
 	}
 
