@@ -17,6 +17,7 @@ var cleanup func() = func() {}
 var pre6dot5 = false // check for Pre 6.5.0 Couchbase
 var adminUsername = "Administrator"
 var adminPassword = "Admin123"
+var bucketName = "foo"
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
@@ -230,7 +231,7 @@ func testCouchbaseDBInitialize_Pre6dot5TLS(t *testing.T, address string, port in
 		"tls":          true,
 		"insecure_tls": false,
 		"base64pem":    base64pemRootCA,
-		"bucket_name":  "foo",
+		"bucket_name":  bucketName,
 	}
 	setupCouchbaseDBInitialize(t, connectionDetails)
 }
@@ -244,7 +245,7 @@ func testCouchbaseDBInitialize_Pre6dot5NoTLS(t *testing.T, address string, port 
 		"port":        port,
 		"username":    adminUsername,
 		"password":    adminPassword,
-		"bucket_name": "foo",
+		"bucket_name": bucketName,
 	}
 	setupCouchbaseDBInitialize(t, connectionDetails)
 }
@@ -262,7 +263,7 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 		"password": adminPassword,
 	}
 	if pre6dot5 {
-		connectionDetails["bucket_name"] = "foo"
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()
@@ -276,7 +277,7 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 	}
 
 	statements := dbplugin.Statements{
-		Creation: []string{testCouchbaseRole},
+		Creation: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
 	}
 
 	usernameConfig := dbplugin.UsernameConfig{
@@ -315,7 +316,7 @@ func checkCredsExist(t *testing.T, username string, password string) error {
 		"password": password,
 	}
 	if pre6dot5 {
-		connectionDetails["bucket_name"] = "foo"
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	time.Sleep(1 * time.Second) // a brief pause to let couchbase finish creating the account
@@ -347,7 +348,7 @@ func revokeUser(t *testing.T, username string) error {
 		"password": adminPassword,
 	}
 	if pre6dot5 {
-		connectionDetails["bucket_name"] = "foo"
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()
@@ -382,7 +383,7 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 		"password": adminPassword,
 	}
 	if pre6dot5 {
-		connectionDetails["bucket_name"] = "foo"
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()
@@ -446,7 +447,7 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 	}
 
 	statements := dbplugin.Statements{
-		Creation: []string{testCouchbaseRole},
+		Creation: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
 	}
 
 	usernameConfig := dbplugin.UsernameConfig{
@@ -546,7 +547,7 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 	}
 
 	statements := dbplugin.Statements{
-		Creation: []string{testCouchbaseRoleAndGroup},
+		Creation: []string{fmt.Sprintf(testCouchbaseRoleAndGroup, bucketName)},
 	}
 
 	usernameConfig := dbplugin.UsernameConfig{
@@ -583,7 +584,7 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 		"password": "rotate-rootpassword",
 	}
 	if pre6dot5 {
-		connectionDetails["bucket_name"] = "foo"
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()
@@ -624,7 +625,7 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		"password": adminPassword,
 	}
 	if pre6dot5 {
-		connectionDetails["bucket_name"] = "foo"
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()
@@ -690,6 +691,6 @@ func testConnectionProducerSecretValues(t *testing.T) {
 	}
 }
 
-const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"foo"}]}`
+const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}]}`
 const testCouchbaseGroup = `{"groups":["g1", "g2"]}`
-const testCouchbaseRoleAndGroup = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"foo"}],"groups":["g1", "g2"]}`
+const testCouchbaseRoleAndGroup = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}],"groups":["g1", "g2"]}`

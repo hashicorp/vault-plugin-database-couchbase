@@ -23,6 +23,15 @@ var (
 	_ dbplugin.Database = &CouchbaseDB{}
 )
 
+// Type that combines the custom plugins Couchbase database connection configuration options and the Vault CredentialsProducer
+// used for generating user information for the Couchbase database.
+type CouchbaseDB struct {
+	*couchbaseDBConnectionProducer
+	credsutil.CredentialsProducer
+}
+
+// Type that combines the Couchbase Roles and Groups representing specific account permissions. Used to pass roles and or groups
+// between the Vault server and the custom plugin
 type RolesAndGroups struct {
 	Roles  []gocb.Role `json:"roles"`
 	Groups []string    `json:"groups"`
@@ -65,11 +74,6 @@ func Run(apiTLSConfig *api.TLSConfig) error {
 	dbplugin.Serve(dbType.(dbplugin.Database), api.VaultPluginTLSProvider(apiTLSConfig))
 
 	return nil
-}
-
-type CouchbaseDB struct {
-	*couchbaseDBConnectionProducer
-	credsutil.CredentialsProducer
 }
 
 func (c *CouchbaseDB) Type() (string, error) {
