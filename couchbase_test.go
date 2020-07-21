@@ -107,7 +107,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		cleanup()
 		t.Fatalf("Could not connect to couchbase docker container: %s", err)
 	}*/
-	return cleanup, "0.0.0.0", 0
+	return cleanup, "0.0.0.0", 8091
 }
 
 func TestDriver(t *testing.T) {
