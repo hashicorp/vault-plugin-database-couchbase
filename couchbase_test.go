@@ -130,7 +130,7 @@ func TestDriver(t *testing.T) {
 	t.Run("Rotate", func(t *testing.T) { testCouchbaseDBRotateRootCredentials(t, address, port) })
 	t.Run("Creds", func(t *testing.T) { testCouchbaseDBSetCredentials(t, address, port) })
 	t.Run("Secret", func(t *testing.T) { testConnectionProducerSecretValues(t) })
-
+	t.Run("TimeoutCalc", func(t *testing.T) { testComputeTimeout(t) })
 }
 
 func testGetCouchbaseVersion(t *testing.T, address string) {
@@ -647,7 +647,9 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		Password: password,
 	}
 
-	_, _, err = db.SetCredentials(context.Background(), statements, staticUser)
+	ctx, cancel := context.WithTimeout(context.Background(), 5000 * time.Millisecond)
+	defer cancel()
+	_, _, err = db.SetCredentials(ctx, statements, staticUser)
 	if err == nil {
 		t.Fatalf("err: did not error on setting password for userThatDoesNotExist")
 	}
@@ -691,6 +693,17 @@ func testConnectionProducerSecretValues(t *testing.T) {
 	}
 }
 
+func testComputeTimeout(t *testing.T) {
+	t.Log("Testing computeTimeout")
+	if computeTimeout(context.Background()) != 5000 * time.Millisecond {
+		t.Fatalf("Background timeout not set to 5 seconds.")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5000 * time.Millisecond)
+	defer cancel()
+	if computeTimeout(ctx) == 5000 * time.Millisecond {
+		t.Fatal("WithTimeout failed")
+	}
+}
 const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}]}`
 const testCouchbaseGroup = `{"groups":["g1", "g2"]}`
 const testCouchbaseRoleAndGroup = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}],"groups":["g1", "g2"]}`

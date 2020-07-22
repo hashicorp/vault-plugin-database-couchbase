@@ -30,8 +30,8 @@ type CouchbaseDB struct {
 	credsutil.CredentialsProducer
 }
 
-// Type that combines the Couchbase Roles and Groups representing specific account permissions. Used to pass roles and or groups
-// between the Vault server and the custom plugin
+// Type that combines the Couchbase Roles and Groups representing specific account permissions. Used to pass roles and or
+// groups between the Vault server and the custom plugin in the dbplugin.Statements
 type RolesAndGroups struct {
 	Roles  []gocb.Role `json:"roles"`
 	Groups []string    `json:"groups"`
@@ -80,12 +80,18 @@ func (c *CouchbaseDB) Type() (string, error) {
 	return couchbaseTypeName, nil
 }
 
+func computeTimeout(ctx context.Context) (timeout time.Duration) {
+	deadline, ok := ctx.Deadline()
+	if ok {
+		return time.Until(deadline)
+	}
+	return 5 * time.Second
+}
 func (c *CouchbaseDB) getConnection(ctx context.Context) (*gocb.Cluster, error) {
 	db, err := c.Connection(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	return db.(*gocb.Cluster), nil
 }
 
@@ -95,11 +101,7 @@ func (c *CouchbaseDB) getConnection(ctx context.Context) (*gocb.Cluster, error) 
 // and setting the password of static accounts, as well as rolling back
 // passwords in the database in the event an updated database fails to save in
 // Vault's storage.
-func (c *CouchbaseDB) SetCredentials(ctx context.Context, statements dbplugin.Statements, staticUser dbplugin.StaticUserConfig) (username, password string, err error) {
-	if len(statements.Rotation) == 0 {
-		statements.Rotation = []string{}
-	}
-
+func (c *CouchbaseDB) SetCredentials(ctx context.Context, _ dbplugin.Statements, staticUser dbplugin.StaticUserConfig) (username, password string, err error) {
 	username = staticUser.Username
 	password = staticUser.Password
 	if username == "" || password == "" {
@@ -144,7 +146,7 @@ func (c *CouchbaseDB) SetCredentials(ctx context.Context, statements dbplugin.St
 
 	err = mgr.UpsertUser(user,
 		&gocb.UpsertUserOptions{
-			Timeout:    1 * time.Second,
+			Timeout:    computeTimeout(ctx),
 			DomainName: string(userOpts.Domain),
 		})
 
@@ -212,7 +214,7 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 
 	err = mgr.UpsertUser(user,
 		&gocb.UpsertUserOptions{
-			Timeout:    1 * time.Second,
+			Timeout:    computeTimeout(ctx),
 			DomainName: "local",
 		})
 	if err != nil {
@@ -304,7 +306,7 @@ func (c *CouchbaseDB) RotateRootCredentials(ctx context.Context, _ []string) (ma
 
 	err = mgr.UpsertUser(user,
 		&gocb.UpsertUserOptions{
-			Timeout:    1 * time.Second,
+			Timeout:    computeTimeout(ctx),
 			DomainName: string(userOpts.Domain),
 		})
 
