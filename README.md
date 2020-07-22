@@ -41,7 +41,7 @@ Prior to initializing the plugin, ensure that you have created an administration
 ```
 $ vault write database/config/insecure-couchbase plugin_name="couchbase-database-plugin" \
         hosts="localhost" username="Administrator" password="password" \
-        bucket_name="default" \ # only needed for pre-6.5.0 clusters
+        bucket_name="travel-sample" \ # only needed for pre-6.5.0 clusters
         allowed_roles="insecure-couchbase-admin-role,insecure-couchbase-*-bucket-role"
 
 # You should consider rotating the admin password. Note that if you do, the new password will never be made available
@@ -49,7 +49,7 @@ $ vault write database/config/insecure-couchbase plugin_name="couchbase-database
 $ vault write -force database/rotate-root/insecure-couchbase
 
  ```
-**Note: If you want to connect the plugin to a couchbase cluster prior to version 6.5.0 you will also have to supply an existing bucket (bucket_name="default") or the command will fail with the error message [TBD]**
+**Note: If you want to connect the plugin to a couchbase cluster prior to version 6.5.0 you will also have to supply an existing bucket (bucket_name="travel-sample") or the command will fail with the error message [TBD]**
 
 ### Encrypted plugin initialization
 
@@ -60,7 +60,7 @@ $ BASE64PEM=$(curl -X GET http://Administrator:Admin123@127.0.0.1:8091/pools/def
 $ vault write database/config/secure-couchbase plugin_name="couchbase-database-plugin" \
       hosts="couchbases://localhost" username="Administrator" password="password" \
       tls=true base64pem=${BASE64PEM} \
-      bucket_name="default" \ # only needed for pre-6.5.0 clusters
+      bucket_name="travel-sample" \ # only needed for pre-6.5.0 clusters
       allowed_roles="secure-couchbase-admin-role,secure-couchbase-*-bucket-role,static-account"
       
 # You should consider rotating the admin password. Note that if you do, the new password will never be made available
@@ -74,9 +74,9 @@ When you create roles, you need to provide a JSON string containing the Couchbas
 $ vault write database/roles/insecure-couchbase-admin-role db_name=insecure-couchbase \
         default_ttl="5m" max_ttl="1h" creation_statements='{"roles":[{"role":"admin"}],"groups":["Supervisor"]}'
         
-$ vault write database/roles/insecure-couchbase-default-bucket-role db_name=insecure-couchbase \
-        default_ttl="5m" max_ttl="1h" creation_statements='{"roles":[{"role":"bucket_full_access","bucket_name":"default"}]}'
-Success! Data written to: database/roles/insecure-couchbase-default-bucket-role
+$ vault write database/roles/insecure-couchbase-travel-sample-bucket-role db_name=insecure-couchbase \
+        default_ttl="5m" max_ttl="1h" creation_statements='{"roles":[{"role":"bucket_full_access","bucket_name":"travel-sample"}]}'
+Success! Data written to: database/roles/insecure-couchbase-travel-sample-bucket-role
 ```
 To retrieve the credentials for the dynamic accounts
 ```
@@ -90,14 +90,14 @@ lease_renewable    true
 password           A1a-yCSH5rAh8QAkCzwu
 username           v-token-insecure-couchbase-admin-role-yA2hgb0tfewf
 
-$ vault read database/creds/insecure-couchbase-default-bucket-role
+$ vault read database/creds/insecure-couchbase-travel-sample-bucket-role
 Key                Value
 ---                -----
-lease_id           database/creds/insecure-couchbase-default-bucket-role/OzHdfkIZdeY9p8kjdWur512j
+lease_id           database/creds/insecure-couchbase-travel-sample-bucket-role/OzHdfkIZdeY9p8kjdWur512j
 lease_duration     5m
 lease_renewable    true
 password           A1a-0yTIuO4q0dCvphz1
-username           v-token-insecure-couchbase-default-bucket-role-iN5
+username           v-token-insecure-couchbase-travel-sample-bucket-role-iN5
 
 ```
 ### Static Role Creation

@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/go-version"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bool, err error) {
@@ -56,4 +58,50 @@ func getRootCAfromCouchbase(url string) (Base64pemCA string, err error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(body), nil
+}
+
+func createUser(hostname string, port int, adminuser, adminpassword, username, password, rbacName, roles string) (err error) {
+	v := url.Values{}
+
+	v.Set("password", password)
+	v.Add("roles", roles)
+	v.Add("name", rbacName)
+
+	req, err := http.NewRequest(http.MethodPut,
+		fmt.Sprintf("http://%s:%s@%s:%d/settings/rbac/users/local/%s",
+			adminuser, adminpassword, hostname, port, username),
+		strings.NewReader(v.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.Status != "200 OK" {
+		return fmt.Errorf("createUser returned %s", resp.Status)
+	}
+	return nil
+}
+
+func createGroup(hostname string, port int, adminuser, adminpassword, group, roles string) (err error) {
+	v := url.Values{}
+
+	v.Set("roles", roles)
+
+	req, err := http.NewRequest(http.MethodPut,
+		fmt.Sprintf("http://%s:%s@%s:%d/settings/rbac/groups/%s",
+			adminuser, adminpassword, hostname, port, group),
+		strings.NewReader(v.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.Status != "200 OK" {
+		return fmt.Errorf("createGroup returned %s", resp.Status)
+	}
+	return nil
 }

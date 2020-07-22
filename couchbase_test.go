@@ -16,8 +16,8 @@ var containerInitialized bool = false
 var cleanup func() = func() {}
 var pre6dot5 = false // check for Pre 6.5.0 Couchbase
 var adminUsername = "Administrator"
-var adminPassword = "Admin123"
-var bucketName = "foo"
+var adminPassword = "password"
+var bucketName = "travel-sample"
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
@@ -34,8 +34,8 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	}
 
 	ro := &dockertest.RunOptions{
-		Repository:   "docker.io/fhitchen/vault-couchbase",
-		Tag:          "latest",
+		Repository:   "docker.io/couchbase/server-sandbox",
+		Tag:          "6.5.0",
 		ExposedPorts: []string{"8091", "8092", "8093", "8094", "11207", "11210", "18091", "18092", "18093", "18094"},
 		PortBindings: map[dc.Port][]dc.PortBinding{
 			"8091": {
@@ -115,6 +115,25 @@ func TestDriver(t *testing.T) {
 	cleanup, address, port := prepareCouchbaseTestContainer(t)
 
 	defer cleanup()
+
+	err := createUser(address, port, adminUsername, adminPassword, "rotate-root", "rotate-rootpassword",
+		"rotate root user", "admin")
+	if err != nil {
+		t.Fatalf("Failed to create rotate-root test user: %s", err)
+	}
+	err = createUser(address, port, adminUsername, adminPassword, "vault-edu", "password",
+		"Vault education user", "admin")
+	if err != nil {
+		t.Fatalf("Failed to create vault-edu test user: %s", err)
+	}
+	err = createGroup(address, port, adminUsername, adminPassword, "g1", "replication_admin")
+	if err != nil {
+		t.Fatalf("Failed to create group g1: %s", err)
+	}
+	err = createGroup(address, port, adminUsername, adminPassword, "g2", "query_external_access")
+	if err != nil {
+		t.Fatalf("Failed to create group g1: %s", err)
+	}
 
 	t.Run("Version", func(t *testing.T) { testGetCouchbaseVersion(t, address) })
 
@@ -647,7 +666,7 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		Password: password,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5000 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
 	_, _, err = db.SetCredentials(ctx, statements, staticUser)
 	if err == nil {
@@ -695,15 +714,16 @@ func testConnectionProducerSecretValues(t *testing.T) {
 
 func testComputeTimeout(t *testing.T) {
 	t.Log("Testing computeTimeout")
-	if computeTimeout(context.Background()) != 5000 * time.Millisecond {
+	if computeTimeout(context.Background()) != 5000*time.Millisecond {
 		t.Fatalf("Background timeout not set to 5 seconds.")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5000 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
-	if computeTimeout(ctx) == 5000 * time.Millisecond {
+	if computeTimeout(ctx) == 5000*time.Millisecond {
 		t.Fatal("WithTimeout failed")
 	}
 }
+
 const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}]}`
 const testCouchbaseGroup = `{"groups":["g1", "g2"]}`
 const testCouchbaseRoleAndGroup = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}],"groups":["g1", "g2"]}`
