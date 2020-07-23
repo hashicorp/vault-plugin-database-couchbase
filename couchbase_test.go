@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -23,7 +24,12 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
 		return func() {}, os.Getenv("COUCHBASE_HOST"), 8091
 	}
-
+	// cbver should match a couchbase/server-sandbox docker repository tag. Default to 6.5.0
+	cbver := os.Getenv("COUCHBASE_VERSION")
+	if cbver == "" {
+		cbver = "6.5.0"
+	}
+	// reuse existing container
 	if containerInitialized == true {
 		return cleanup, "localhost", 8091
 	}
@@ -35,7 +41,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 
 	ro := &dockertest.RunOptions{
 		Repository:   "docker.io/couchbase/server-sandbox",
-		Tag:          "6.5.0",
+		Tag:          cbver,
 		ExposedPorts: []string{"8091", "8092", "8093", "8094", "11207", "11210", "18091", "18092", "18093", "18094"},
 		PortBindings: map[dc.Port][]dc.PortBinding{
 			"8091": {
@@ -79,34 +85,23 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		docker.CleanupResource(t, pool, resource)
 	}
 
-	time.Sleep(30 * time.Second)
+	address := fmt.Sprintf("http://127.0.0.1:8091/")
+	if err = pool.Retry(func() error {
+		t.Log("Waiting for the database to start...")
+		resp, err := http.Get(address)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != 200 {
+			return fmt.Errorf("Got a %d status code from couchbase's Web Console", resp.StatusCode)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("Could not connect to couchbase: %s", err)
+	}
 
 	containerInitialized = true
 
-	// [TODO] wait for contaienr to be ready using sleep for now.
-	//port, _ := strconv.Atoi(resource.GetPort("9042/tcp"))
-	//address  := fmt.Sprintf("127.0.0.1:%d", port)
-
-	// exponential backoff-retry
-	/* if err = pool.Retry(func() error {
-		clusterConfig := gocql.NewCluster(address)
-		clusterConfig.Authenticator = gocql.PasswordAuthenticator{
-			Username: "cassandra",
-			Password: "cassandra",
-		}
-		clusterConfig.ProtoVersion = 4
-		clusterConfig.Port = port
-
-		session, err := clusterConfig.CreateSession()
-		if err != nil {
-			return errwrap.Wrapf("error creating session: {{err}}", err)
-		}
-		defer session.Close()
-		return nil
-	}); err != nil {
-		cleanup()
-		t.Fatalf("Could not connect to couchbase docker container: %s", err)
-	}*/
 	return cleanup, "0.0.0.0", 8091
 }
 
@@ -126,16 +121,21 @@ func TestDriver(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create vault-edu test user: %s", err)
 	}
-	err = createGroup(address, port, adminUsername, adminPassword, "g1", "replication_admin")
-	if err != nil {
-		t.Fatalf("Failed to create group g1: %s", err)
-	}
-	err = createGroup(address, port, adminUsername, adminPassword, "g2", "query_external_access")
-	if err != nil {
-		t.Fatalf("Failed to create group g1: %s", err)
-	}
 
 	t.Run("Version", func(t *testing.T) { testGetCouchbaseVersion(t, address) })
+
+	if !pre6dot5 {
+		err = createGroup(address, port, adminUsername, adminPassword, "g1", "replication_admin")
+		if err != nil {
+			t.Fatalf("Failed to create group g1: %s", err)
+		}
+		err = createGroup(address, port, adminUsername, adminPassword, "g2", "query_external_access")
+		if err != nil {
+			t.Fatalf("Failed to create group g1: %s", err)
+		} else {
+			t.Log("Skipping group creation as the Couchbase DB does not support groups")
+		}
+	}
 
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_TLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_NoTLS(t, address, port) })
@@ -454,6 +454,9 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 		"password":         adminPassword,
 		"protocol_version": 4,
 	}
+	if pre6dot5 {
+		connectionDetails["bucket_name"] = bucketName
+	}
 
 	db := new()
 	_, err := db.Init(context.Background(), connectionDetails, true)
@@ -496,6 +499,10 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
+	if pre6dot5 {
+		t.Log("Skipping as groups are not supported pre6.5.0")
+		t.SkipNow()
+	}
 	t.Log("Testing CreateUser_groupOnly()")
 
 	connectionDetails := map[string]interface{}{
@@ -504,6 +511,9 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 		"username":         adminUsername,
 		"password":         adminPassword,
 		"protocol_version": 4,
+	}
+	if pre6dot5 {
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()
@@ -545,6 +555,10 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
+	if pre6dot5 {
+		t.Log("Skipping as groups are not supported pre6.5.0")
+		t.SkipNow()
+	}
 	t.Log("Testing CreateUser_roleAndGroup()")
 
 	connectionDetails := map[string]interface{}{
@@ -553,6 +567,9 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 		"username":         adminUsername,
 		"password":         adminPassword,
 		"protocol_version": 4,
+	}
+	if pre6dot5 {
+		connectionDetails["bucket_name"] = bucketName
 	}
 
 	db := new()

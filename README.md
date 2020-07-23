@@ -49,7 +49,7 @@ $ vault write database/config/insecure-couchbase plugin_name="couchbase-database
 $ vault write -force database/rotate-root/insecure-couchbase
 
  ```
-**Note: If you want to connect the plugin to a couchbase cluster prior to version 6.5.0 you will also have to supply an existing bucket (bucket_name="travel-sample") or the command will fail with the error message [TBD]**
+**Note: If you want to connect the plugin to a couchbase cluster prior to version 6.5.0 you will also have to supply an existing bucket (bucket_name="travel-sample") or the command will fail with the error message **error verifying connection: error in Connection waiting for cluster: unambiguous timeout**
 
 ### Encrypted plugin initialization
 
@@ -78,6 +78,9 @@ $ vault write database/roles/insecure-couchbase-travel-sample-bucket-role db_nam
         default_ttl="5m" max_ttl="1h" creation_statements='{"roles":[{"role":"bucket_full_access","bucket_name":"travel-sample"}]}'
 Success! Data written to: database/roles/insecure-couchbase-travel-sample-bucket-role
 ```
+If you create a role that uses groups on a pre 6.5 couchbase server it will be successful, but when you try to generate credentials
+you will receive the error **rpc error: code = Unknown desc = {"errors":{"groups":"Unsupported key"}} ...**
+
 To retrieve the credentials for the dynamic accounts
 ```
 
