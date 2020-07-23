@@ -132,10 +132,11 @@ func TestDriver(t *testing.T) {
 		err = createGroup(address, port, adminUsername, adminPassword, "g2", "query_external_access")
 		if err != nil {
 			t.Fatalf("Failed to create group g1: %s", err)
-		} else {
-			t.Log("Skipping group creation as the Couchbase DB does not support groups")
 		}
+	} else {
+		t.Log("Skipping group creation as the Couchbase DB does not support groups")
 	}
+
 
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_TLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_NoTLS(t, address, port) })
