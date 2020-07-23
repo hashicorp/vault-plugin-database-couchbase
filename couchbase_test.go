@@ -137,11 +137,22 @@ func TestDriver(t *testing.T) {
 		t.Log("Skipping group creation as the Couchbase DB does not support groups")
 	}
 
-
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_TLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_NoTLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5TLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5NoTLS(t, address, port) })
+
+	/* Need a pause as sometimes the travel-sample bucket is not ready and you get strange errors like this...
+	   err: {"errors":{"roles":"Cannot assign roles to user because the following roles are unknown, malformed or role
+	       parameters are undefined: [bucket_admin[travel-sample]]"}}
+	   Can use http://Administrator:password@localhost:8091/sampleBuckets to see if the installed element is true before
+	   proceeding.
+	   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
+	    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
+	    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
+
+	time.Sleep(10 * time.Second) // need a pause as sometimes the travel-sample bucket is not ready.
+
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser(t, address, port) })
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_DefaultRole(t, address, port) })
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_plusRole(t, address, port) })
