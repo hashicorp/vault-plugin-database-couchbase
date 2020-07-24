@@ -1,6 +1,6 @@
 # vault-plugin-database-couchbase
 
-[![CircleCI](https://circleci.com/gh/fhitchen/vault-plugin-database-couchbase-1.svg?style=svg)](https://circleci.com/gh/fhitchen/vault-plugin-database-couchbase-1)
+[![CircleCI](https://circleci.com/gh/hashicorp/vault-plugin-database-couchbase.svg?style=svg)](https://circleci.com/gh/hashicorp/vault-plugin-database-couchbase)
 
 A [Vault](https://www.vaultproject.io) plugin for Couchbase
 
