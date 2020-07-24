@@ -4,7 +4,8 @@
 version: 2
 jobs:
   build:
-    machine: true
+    machine:
+      docker_layer_caching: true
     environment:
       GO_VERSION: 1.14.4
     #### TEMPLATE_NOTE: go expects specific checkout path representing url
