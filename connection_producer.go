@@ -20,7 +20,6 @@ type couchbaseDBConnectionProducer struct {
 	PrivateKey  string `json:"private_key"`
 	ProjectID   string `json:"project_id"`
 	Hosts       string `json:"hosts"`
-	Port        int    `json:"port"`
 	Username    string `json:"username"`
 	Password    string `json:"password"`
 	TLS         bool   `json:"tls"`
@@ -85,9 +84,10 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, initConfig map
 	}
 
 	c.Initialized = true
-
+	
 	if verifyConnection {
 		if _, err := c.Connection(ctx); err != nil {
+			c.close()
 			return nil, errwrap.Wrapf("error verifying connection: {{err}}", err)
 		}
 	}

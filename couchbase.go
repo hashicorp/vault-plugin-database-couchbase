@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
 	"github.com/hashicorp/vault/sdk/database/helper/dbutil"
+	hclog "github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -120,8 +121,9 @@ func (c *CouchbaseDB) SetCredentials(ctx context.Context, _ dbplugin.Statements,
 
 	// Close the database connection to ensure no new connections come in
 	defer func() {
-		if thiserr := c.close(); thiserr != nil {
-			err = thiserr
+		if err := c.close(); err != nil {
+			logger := hclog.New(&hclog.LoggerOptions{})
+			logger.Error("defer close failed", "error", err)
 		}
 	}()
 
@@ -195,8 +197,9 @@ func (c *CouchbaseDB) CreateUser(ctx context.Context, statements dbplugin.Statem
 
 	// Close the database connection to ensure no new connections come in
 	defer func() {
-		if thiserr := c.close(); thiserr != nil {
-			err = thiserr
+		if err := c.close(); err != nil {
+			logger := hclog.New(&hclog.LoggerOptions{})
+			logger.Error("defer close failed", "error", err)
 		}
 	}()
 
@@ -243,8 +246,9 @@ func (c *CouchbaseDB) RevokeUser(ctx context.Context, statements dbplugin.Statem
 
 	// Close the database connection to ensure no new connections come in
 	defer func() {
-		if thiserr := c.close(); thiserr != nil {
-			err = thiserr
+		if err := c.close(); err != nil {
+			logger := hclog.New(&hclog.LoggerOptions{})
+			logger.Error("defer close failed", "error", err)
 		}
 	}()
 
@@ -280,8 +284,9 @@ func (c *CouchbaseDB) RotateRootCredentials(ctx context.Context, _ []string) (ma
 
 	// Close the database connection to ensure no new connections come in
 	defer func() {
-		if thiserr := c.close(); thiserr != nil {
-			err = thiserr
+		if err := c.close(); err != nil {
+			logger := hclog.New(&hclog.LoggerOptions{})
+			logger.Error("defer close failed", "error", err)
 		}
 	}()
 
