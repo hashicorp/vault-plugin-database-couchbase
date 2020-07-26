@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-version"
 	"io/ioutil"
 	"net/http"
@@ -104,4 +105,43 @@ func createGroup(hostname string, port int, adminuser, adminpassword, group, rol
 		return fmt.Errorf("createGroup returned %s", resp.Status)
 	}
 	return nil
+}
+
+func waitForBucketInstalled(address, username, password, bucket string) (bucketFound, bucketInstalled bool, err error) {
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s@%s:8091/sampleBuckets", username, password, address))
+	if err != nil {
+		return false, false, err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false, false, err
+	}
+
+	type installed []struct {
+		Name        string `json:"name"`
+		Installed   bool   `json:"installed"`
+		QuotaNeeded int64  `json:"quotaNeeded"`
+	}
+
+	var iresult installed
+
+	err = json.Unmarshal(body, &iresult)
+	if err != nil {
+		err := backoff.PermanentError{
+			Err: fmt.Errorf("error unmarshaling JSON %s", err),
+		}
+		return false, false, &err
+	}
+
+	for _, s := range iresult {
+		if s.Name == bucket {
+			bucketFound = true
+			if s.Installed == true {
+				bucketInstalled = true
+			}
+		}
+
+	}
+	return bucketFound, bucketInstalled, nil
 }

@@ -8,11 +8,11 @@ import (
 
 	"github.com/couchbase/gocb/v2"
 	"github.com/hashicorp/errwrap"
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
 	"github.com/hashicorp/vault/sdk/database/helper/dbutil"
-	hclog "github.com/hashicorp/go-hclog"
 )
 
 const (

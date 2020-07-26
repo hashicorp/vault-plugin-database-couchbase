@@ -3,6 +3,7 @@ package couchbase
 import (
 	"context"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	docker "github.com/hashicorp/vault/helper/testhelpers/docker"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/ory/dockertest"
@@ -18,7 +19,7 @@ var pre6dot5 = false // check for Pre 6.5.0 Couchbase
 const (
 	adminUsername = "Administrator"
 	adminPassword = "password"
-	bucketName = "travel-sample"
+	bucketName    = "travel-sample"
 )
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
@@ -82,7 +83,8 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		docker.CleanupResource(t, pool, resource)
 	}
 
-	address := fmt.Sprint("http://127.0.0.1:8091/")
+	address := "http://127.0.0.1:8091/"
+	
 	if err = pool.Retry(func() error {
 		t.Log("Waiting for the database to start...")
 		resp, err := http.Get(address)
@@ -137,16 +139,38 @@ func TestDriver(t *testing.T) {
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5TLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5NoTLS(t, address, port) })
 
-	/* Need a pause as sometimes the travel-sample bucket is not ready and you get strange errors like this...
-	   err: {"errors":{"roles":"Cannot assign roles to user because the following roles are unknown, malformed or role
-	       parameters are undefined: [bucket_admin[travel-sample]]"}}
-	   Can use http://Administrator:password@localhost:8091/sampleBuckets to see if the installed element is true before
-	   proceeding.
-	   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
-	    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
-	    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
+	/* Need to pause here as sometimes the travel-sample bucket is not ready and you get strange errors like this...
+		   err: {"errors":{"roles":"Cannot assign roles to user because the following roles are unknown, malformed or role
+		       parameters are undefined: [bucket_admin[travel-sample]]"}}
+		   the backoff function uses
+	           http://Administrator:password@localhost:8091/sampleBuckets
+	           to see if the couchbase container has finished installing the test bucket befor proceeding. The installed
+	           element for the bucket needs to be true before proceeding.
 
-	time.Sleep(10 * time.Second) // need a pause as sometimes the travel-sample bucket is not ready.
+		   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
+		    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
+		    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
+
+	if err = backoff.Retry(func() error {
+		t.Log("Waiting for the bucket to be installed.")
+		
+		bucketFound, bucketInstalled, err := waitForBucketInstalled(address, adminUsername, adminPassword, bucketName)
+		if err != nil {
+			return err
+		}
+		if bucketFound == false {
+			err := backoff.PermanentError{
+				Err: fmt.Errorf("bucket %s was not found..", bucketName),
+			}
+			return &err
+		}
+		if bucketInstalled == false {
+			return fmt.Errorf("waiting for bucket %s to be installed...", bucketName)
+		}
+		return nil
+	}, backoff.NewExponentialBackOff()); err != nil {
+		t.Fatalf("bucket %s installed check failed: %s", bucketName, err)
+	}
 
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser(t, address, port) })
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_DefaultRole(t, address, port) })

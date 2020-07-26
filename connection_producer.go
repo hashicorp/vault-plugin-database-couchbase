@@ -84,7 +84,7 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, initConfig map
 	}
 
 	c.Initialized = true
-	
+
 	if verifyConnection {
 		if _, err := c.Connection(ctx); err != nil {
 			c.close()
