@@ -3,6 +3,7 @@ package couchbase
 import (
 	"context"
 	"fmt"
+	"github.com/cenkalti/backoff"
 	docker "github.com/hashicorp/vault/helper/testhelpers/docker"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/ory/dockertest"
@@ -13,12 +14,13 @@ import (
 	"time"
 )
 
-var containerInitialized bool = false
-var cleanup func() = func() {}
 var pre6dot5 = false // check for Pre 6.5.0 Couchbase
-var adminUsername = "Administrator"
-var adminPassword = "password"
-var bucketName = "travel-sample"
+
+const (
+	adminUsername = "Administrator"
+	adminPassword = "password"
+	bucketName    = "travel-sample"
+)
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
@@ -28,10 +30,6 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	cbver := os.Getenv("COUCHBASE_VERSION")
 	if cbver == "" {
 		cbver = "6.5.0"
-	}
-	// reuse existing container
-	if containerInitialized == true {
-		return cleanup, "localhost", 8091
 	}
 
 	pool, err := dockertest.NewPool("")
@@ -81,11 +79,12 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		t.Fatalf("Could not start local couchbase docker container: %s", err)
 	}
 
-	cleanup = func() {
+	cleanup := func() {
 		docker.CleanupResource(t, pool, resource)
 	}
 
-	address := fmt.Sprintf("http://127.0.0.1:8091/")
+	address := "http://127.0.0.1:8091/"
+	
 	if err = pool.Retry(func() error {
 		t.Log("Waiting for the database to start...")
 		resp, err := http.Get(address)
@@ -99,8 +98,6 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	}); err != nil {
 		t.Fatalf("Could not connect to couchbase: %s", err)
 	}
-
-	containerInitialized = true
 
 	return cleanup, "0.0.0.0", 8091
 }
@@ -142,16 +139,38 @@ func TestDriver(t *testing.T) {
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5TLS(t, address, port) })
 	t.Run("Init", func(t *testing.T) { testCouchbaseDBInitialize_Pre6dot5NoTLS(t, address, port) })
 
-	/* Need a pause as sometimes the travel-sample bucket is not ready and you get strange errors like this...
-	   err: {"errors":{"roles":"Cannot assign roles to user because the following roles are unknown, malformed or role
-	       parameters are undefined: [bucket_admin[travel-sample]]"}}
-	   Can use http://Administrator:password@localhost:8091/sampleBuckets to see if the installed element is true before
-	   proceeding.
-	   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
-	    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
-	    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
+	/* Need to pause here as sometimes the travel-sample bucket is not ready and you get strange errors like this...
+		   err: {"errors":{"roles":"Cannot assign roles to user because the following roles are unknown, malformed or role
+		       parameters are undefined: [bucket_admin[travel-sample]]"}}
+		   the backoff function uses
+	           http://Administrator:password@localhost:8091/sampleBuckets
+	           to see if the couchbase container has finished installing the test bucket befor proceeding. The installed
+	           element for the bucket needs to be true before proceeding.
 
-	time.Sleep(10 * time.Second) // need a pause as sometimes the travel-sample bucket is not ready.
+		   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
+		    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
+		    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
+
+	if err = backoff.Retry(func() error {
+		t.Log("Waiting for the bucket to be installed.")
+		
+		bucketFound, bucketInstalled, err := waitForBucketInstalled(address, adminUsername, adminPassword, bucketName)
+		if err != nil {
+			return err
+		}
+		if bucketFound == false {
+			err := backoff.PermanentError{
+				Err: fmt.Errorf("bucket %s was not found..", bucketName),
+			}
+			return &err
+		}
+		if bucketInstalled == false {
+			return fmt.Errorf("waiting for bucket %s to be installed...", bucketName)
+		}
+		return nil
+	}, backoff.NewExponentialBackOff()); err != nil {
+		t.Fatalf("bucket %s installed check failed: %s", bucketName, err)
+	}
 
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser(t, address, port) })
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_DefaultRole(t, address, port) })
@@ -323,22 +342,21 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password); err != nil {
+	if err := checkCredsExist(t, username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username)
+	err = revokeUser(t, username, address, port)
 	if err != nil {
 		t.Fatalf("Could not revoke user: %s", username)
 	}
 }
 
-func checkCredsExist(t *testing.T, username string, password string) error {
+func checkCredsExist(t *testing.T, username, password, address string, port int) error {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
 	t.Log("Testing checkCredsExist()")
-	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
@@ -365,12 +383,11 @@ func checkCredsExist(t *testing.T, username string, password string) error {
 	return nil
 }
 
-func revokeUser(t *testing.T, username string) error {
+func revokeUser(t *testing.T, username, address string, port int) error {
 	if os.Getenv("VAULT_ACC") == "" {
 		t.SkipNow()
 	}
 	t.Log("Testing RevokeUser()")
-	_, address, port := prepareCouchbaseTestContainer(t)
 
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
@@ -443,11 +460,11 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password); err != nil {
+	if err := checkCredsExist(t, username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username)
+	err = revokeUser(t, username, address, port)
 	if err != nil {
 		t.Fatalf("Could not revoke user: %s", username)
 	}
@@ -496,11 +513,11 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password); err != nil {
+	if err := checkCredsExist(t, username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username)
+	err = revokeUser(t, username, address, port)
 	if err != nil {
 		t.Fatalf("Could not revoke user: %s", username)
 	}
@@ -554,11 +571,11 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password); err != nil {
+	if err := checkCredsExist(t, username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username)
+	err = revokeUser(t, username, address, port)
 	if err != nil {
 		t.Fatalf("Could not revoke user: %s", username)
 	}
@@ -610,11 +627,11 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password); err != nil {
+	if err := checkCredsExist(t, username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username)
+	err = revokeUser(t, username, address, port)
 	if err != nil {
 		t.Fatalf("Could not revoke user: %s", username)
 	}
@@ -657,7 +674,7 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 	// defer setting the password back in case the test fails.
 	defer doCouchbaseDBSetCredentials(t, "rotate-root", "rotate-rootpassword", address, port)
 
-	if err := checkCredsExist(t, db.Username, password["password"].(string)); err != nil {
+	if err := checkCredsExist(t, db.Username, password["password"].(string), address, port); err != nil {
 		t.Fatalf("Could not connect with new RotatedRootcredentials: %s", err)
 	}
 }
@@ -714,7 +731,7 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password); err != nil {
+	if err := checkCredsExist(t, username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with rotated credentials: %s", err)
 	}
 }

@@ -3,6 +3,7 @@ module github.com/fhitchen/vault-plugin-database-couchbase
 go 1.14
 
 require (
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/containerd/continuity v0.0.0-20200413184840-d3ef23f19fbb // indirect
 	github.com/couchbase/gocb/v2 v2.1.1
 	github.com/hashicorp/errwrap v1.0.0
