@@ -3,15 +3,16 @@ package couchbase
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/cenkalti/backoff"
 	docker "github.com/hashicorp/vault/helper/testhelpers/docker"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
-	"net/http"
-	"os"
-	"testing"
-	"time"
 )
 
 var pre6dot5 = false // check for Pre 6.5.0 Couchbase
@@ -84,7 +85,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	}
 
 	address := "http://127.0.0.1:8091/"
-	
+
 	if err = pool.Retry(func() error {
 		t.Log("Waiting for the database to start...")
 		resp, err := http.Get(address)
@@ -97,6 +98,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		return nil
 	}); err != nil {
 		t.Fatalf("Could not connect to couchbase: %s", err)
+		cleanup()
 	}
 
 	return cleanup, "0.0.0.0", 8091
@@ -153,7 +155,7 @@ func TestDriver(t *testing.T) {
 
 	if err = backoff.Retry(func() error {
 		t.Log("Waiting for the bucket to be installed.")
-		
+
 		bucketFound, bucketInstalled, err := waitForBucketInstalled(address, adminUsername, adminPassword, bucketName)
 		if err != nil {
 			return err
