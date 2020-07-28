@@ -1,8 +1,9 @@
 package main
 
 import (
-	hclog "github.com/hashicorp/go-hclog"
 	"os"
+
+	hclog "github.com/hashicorp/go-hclog"
 
 	couchbase "github.com/fhitchen/vault-plugin-database-couchbase"
 	"github.com/hashicorp/vault/api"

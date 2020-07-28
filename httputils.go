@@ -4,12 +4,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/cenkalti/backoff"
-	"github.com/hashicorp/go-version"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/cenkalti/backoff"
+	"github.com/hashicorp/go-version"
 )
 
 func CheckForOldCouchbaseVersion(hostname, username, password string) (is_old bool, err error) {
