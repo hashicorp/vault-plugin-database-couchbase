@@ -18,6 +18,7 @@ import (
 const (
 	couchbaseTypeName        = "couchbase"
 	defaultCouchbaseUserRole = `{"Roles": [{"role":"ro_admin"}]}`
+	defaultTimeout           = 20000 * time.Millisecond
 )
 
 var (
@@ -86,7 +87,7 @@ func computeTimeout(ctx context.Context) (timeout time.Duration) {
 	if ok {
 		return time.Until(deadline)
 	}
-	return 5 * time.Second
+	return defaultTimeout
 }
 func (c *CouchbaseDB) getConnection(ctx context.Context) (*gocb.Cluster, error) {
 	db, err := c.Connection(ctx)
