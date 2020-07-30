@@ -5,7 +5,7 @@ import (
 
 	hclog "github.com/hashicorp/go-hclog"
 
-	couchbase "github.com/fhitchen/vault-plugin-database-couchbase"
+	couchbase "github.com/hashicorp/vault-plugin-database-couchbase"
 	"github.com/hashicorp/vault/api"
 )
 
