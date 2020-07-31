@@ -1,8 +1,6 @@
 TOOL?=vault-plugin-database-couchbase
 TEST?=$$(go list ./... | grep -v /vendor/ | grep -v teamcity)
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
-EXTERNAL_TOOLS=\
-	github.com/mitchellh/gox
 BUILD_TAGS?=${TOOL}
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
@@ -12,8 +10,9 @@ bin: fmtcheck generate
 
 default: dev
 
-# dev creates binaries for testing Vault locally. These are put
-# into ./bin/ as well as $GOPATH/bin.
+# dev starts up `vault` from your $PATH, then builds the couchbase
+# plugin, registers it with vault and enables it.
+# A ./tmp dir is created for configs and binaries, and cleaned up on exit.
 dev: fmtcheck generate
 	@CGO_ENABLED=0 BUILD_TAGS='$(BUILD_TAGS)' VAULT_DEV_BUILD=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
@@ -23,19 +22,7 @@ test: fmtcheck generate
 
 testcompile: fmtcheck generate
 	@for pkg in $(TEST) ; do \
-		go test -v -c -tags='$(BUILD_TAGS)' $$pkg -parallel=4 ; \
-	done
-
-# generate runs `go generate` to build the dynamically generated
-# source files.
-generate:
-	go generate $(go list ./... | grep -v /vendor/)
-
-# bootstrap the build by downloading additional tools
-bootstrap:
-	@for tool in  $(EXTERNAL_TOOLS) ; do \
-		echo "Installing/Updating $$tool" ; \
-		go get -u $$tool; \
+		go test -v -c -tags='$(BUILD_TAGS)' $$pkg ; \
 	done
 
 fmtcheck:
@@ -44,7 +31,4 @@ fmtcheck:
 fmt:
 	gofmt -w $(GOFMT_FILES)
 
-proto:
-	protoc *.proto --go_out=plugins=grpc:.
-
-.PHONY: bin default generate test vet bootstrap fmt fmtcheck
+.PHONY: bin default dev test testcompile fmtcheck fmt
