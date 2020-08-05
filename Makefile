@@ -19,7 +19,7 @@ dev: fmtcheck
 
 # test runs the unit tests and vets the code
 test: fmtcheck
-	CGO_ENABLED=0 VAULT_TOKEN= VAULT_ACC= ${GO_TEST_CMD} -tags='$(BUILD_TAGS)' $(TEST) $(TESTARGS) -count=1 -timeout=5m -parallel=4
+	CGO_ENABLED=0 VAULT_TOKEN= ${GO_TEST_CMD} -tags='$(BUILD_TAGS)' $(TEST) $(TESTARGS) -count=1 -timeout=5m -parallel=4
 
 testacc: fmtcheck
 	CGO_ENABLED=0 VAULT_TOKEN= VAULT_ACC=1 ${GO_TEST_CMD} -tags='$(BUILD_TAGS)' $(TEST) $(TESTARGS) -count=1 -timeout=20m
