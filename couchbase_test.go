@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/cenkalti/backoff"
-	docker "github.com/hashicorp/vault/helper/testhelpers/docker"
 	"github.com/hashicorp/vault/sdk/database/dbplugin"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
@@ -81,7 +81,15 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	}
 
 	cleanup := func() {
-		docker.CleanupResource(t, pool, resource)
+		err := pool.Retry(func() error {
+			return pool.Purge(resource)
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "No such container") {
+				return
+			}
+			t.Fatalf("Failed to cleanup local container: %s", err)
+		}
 	}
 
 	address := "http://127.0.0.1:8091/"
