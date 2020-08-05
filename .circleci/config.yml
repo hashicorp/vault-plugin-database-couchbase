@@ -8,7 +8,8 @@ jobs:
       docker_layer_caching: true
     environment:
       GO_VERSION: 1.14.4
-      VAULT_ACC: true
+      GO_TEST_CMD: gotestsum --format=short-verbose --junitfile=test-results/go-test/$${COUCHBASE_VERSION}-results.xml --jsonfile=test-results/go-test/$${COUCHBASE_VERSION}-results.json --
+      GOTESTSUM_VERSION: 0.5.2
     #### TEMPLATE_NOTE: go expects specific checkout path representing url
     #### expecting it in the form of
     ####   /go/src/github.com/circleci/go-tool
@@ -30,12 +31,22 @@ jobs:
 
           echo "$ go version"
           go version
+
+          # Install gotestsum
+          curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_VERSION}/gotestsum_${GOTESTSUM_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar --overwrite -xz -C /usr/local/bin gotestsum
+
         name: Setup Go
         working_directory: ~/
-
     - checkout
-    # specify any bash command here prefixed with `run: `
-    - run: go get -v -t -d ./...
-    - run: COUCHBASE_VERSION=6.5.0 go test -v ./...
-    - run: COUCHBASE_VERSION=6.0.0 go test -v ./...
-    - run: COUCHBASE_VERSION=5.5.1 go test -v ./...
+    - run:
+        command: |
+          mkdir -p test-results/go-test
+          COUCHBASE_VERSION=6.5.0 make testacc
+          COUCHBASE_VERSION=6.0.0 make testacc
+          COUCHBASE_VERSION=5.5.1 make testacc
+        name: Run Go tests
+    - store_artifacts:
+        path: test-results
+    - store_test_results:
+        path: test-results
