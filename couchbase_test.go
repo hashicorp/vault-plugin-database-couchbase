@@ -770,12 +770,12 @@ func testConnectionProducerSecretValues(t *testing.T) {
 
 func testComputeTimeout(t *testing.T) {
 	t.Log("Testing computeTimeout")
-	if computeTimeout(context.Background()) != 5000*time.Millisecond {
-		t.Fatalf("Background timeout not set to 5 seconds.")
+	if computeTimeout(context.Background()) != defaultTimeout {
+		t.Fatalf("Background timeout not set to %s milliseconds.", defaultTimeout)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	if computeTimeout(ctx) == 5000*time.Millisecond {
+	if computeTimeout(ctx) == defaultTimeout {
 		t.Fatal("WithTimeout failed")
 	}
 }
