@@ -42,6 +42,8 @@ jobs:
     - run:
         command: |
           mkdir -p test-results/go-test
+          COUCHBASE_VERSION=6.6.0 make testacc
+          COUCHBASE_VERSION=6.5.1 make testacc
           COUCHBASE_VERSION=6.5.0 make testacc
           COUCHBASE_VERSION=6.0.0 make testacc
           COUCHBASE_VERSION=5.5.1 make testacc
