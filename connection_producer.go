@@ -33,8 +33,8 @@ type couchbaseDBConnectionProducer struct {
 	sync.Mutex
 }
 
-func (c *couchbaseDBConnectionProducer) secretValues() map[string]interface{} {
-	return map[string]interface{}{
+func (c *couchbaseDBConnectionProducer) secretValues() map[string]string {
+	return map[string]string{
 		c.Password: "[password]",
 		c.Username: "[username]",
 	}
