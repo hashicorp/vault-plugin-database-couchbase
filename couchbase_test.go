@@ -206,7 +206,7 @@ func testGetCouchbaseVersion(t *testing.T, address string) {
 func setupCouchbaseDBInitialize(t *testing.T, connectionDetails map[string]interface{}) (err error) {
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -332,7 +332,7 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -353,7 +353,7 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 		Statements: newdbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
 		},
-		Password: password,
+		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
 	}
 
@@ -393,7 +393,7 @@ func checkCredsExist(t *testing.T, username, password, address string, port int)
 	time.Sleep(1 * time.Second) // a brief pause to let couchbase finish creating the account
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -427,7 +427,7 @@ func revokeUser(t *testing.T, username, address string, port int) error {
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -467,7 +467,7 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -491,7 +491,7 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 		Statements: newdbplugin.Statements{
 			Commands: []string{},
 		},
-		Password: password,
+		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
 	}
 
@@ -521,7 +521,7 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -545,7 +545,7 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 		Statements: newdbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
 		},
-		Password: password,
+		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
 	}
 
@@ -589,7 +589,7 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -613,7 +613,7 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 		Statements: newdbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseGroup)},
 		},
-		Password: password,
+		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
 	}
 
@@ -655,7 +655,7 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -679,7 +679,7 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 		Statements: newdbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseRoleAndGroup, bucketName)},
 		},
-		Password: password,
+		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
 	}
 
@@ -716,7 +716,7 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 
@@ -767,7 +767,7 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 	}
 
 	initReq := newdbplugin.InitializeRequest{
-		Config: connectionDetails,
+		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
 

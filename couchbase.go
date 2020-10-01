@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	couchbaseTypeName        = "couchbase"
-	defaultTimeout           = 20000 * time.Millisecond
+	couchbaseTypeName = "couchbase"
+	defaultTimeout    = 20000 * time.Millisecond
 )
 
 var (
@@ -155,7 +155,7 @@ func newUser(ctx context.Context, db *gocb.Cluster, username string, req newdbpl
 
 	var rag RolesAndGroups
 
-	err:= json.Unmarshal(jsonRoleAndGroupData, &rag)
+	err := json.Unmarshal(jsonRoleAndGroupData, &rag)
 	if err != nil {
 		return errwrap.Wrapf("error unmarshalling roles and groups creation statement JSON: {{err}}", err)
 	}
