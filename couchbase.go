@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/vault/api"
 	"strings"
 	"time"
 
@@ -11,13 +12,14 @@ import (
 	"github.com/hashicorp/errwrap"
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
-	"github.com/hashicorp/vault/sdk/database/helper/dbutil"
 	"github.com/hashicorp/vault/sdk/database/newdbplugin"
 )
 
 const (
 	couchbaseTypeName = "couchbase"
+	defaultCouchbaseUserRole = `{"Roles": [{"role":"ro_admin"}]}`
 	defaultTimeout    = 20000 * time.Millisecond
+	maxKeyLength      = 64
 )
 
 var (
@@ -58,13 +60,13 @@ func new() *CouchbaseDB {
 }
 
 // Run instantiates a CouchbaseDB object, and runs the RPC server for the plugin
-func Run() error {
+func Run(apiTLSConfig *api.TLSConfig) error {
 	db, err := New()
 	if err != nil {
 		return err
 	}
 
-	newdbplugin.Serve(db.(newdbplugin.Database))
+	newdbplugin.Serve(db.(newdbplugin.Database), api.VaultPluginTLSProvider(apiTLSConfig))
 
 	return nil
 }
@@ -85,12 +87,9 @@ func (c *CouchbaseDB) NewUser(ctx context.Context, req newdbplugin.NewUserReques
 	c.Lock()
 	defer c.Unlock()
 
-	statements := removeEmpty(req.Statements.Commands)
-	if len(statements) == 0 {
-		return newdbplugin.NewUserResponse{}, dbutil.ErrEmptyCreationStatement
-	}
-
-	username, err := newUsername(req.UsernameConfig)
+	username, err := credsutil.GenerateUsername(
+		credsutil.DisplayName(req.UsernameConfig.DisplayName, maxKeyLength),
+		credsutil.RoleName(req.UsernameConfig.RoleName, maxKeyLength))
 	if err != nil {
 		return newdbplugin.NewUserResponse{}, fmt.Errorf("failed to generate username: %w", err)
 	}
@@ -151,7 +150,12 @@ func (c *CouchbaseDB) DeleteUser(ctx context.Context, req newdbplugin.DeleteUser
 }
 
 func newUser(ctx context.Context, db *gocb.Cluster, username string, req newdbplugin.NewUserRequest) error {
-	jsonRoleAndGroupData := []byte(req.Statements.Commands[0])
+	statements := removeEmpty(req.Statements.Commands)
+	if len(statements) == 0 {
+		statements = append(statements, defaultCouchbaseUserRole)
+	}
+
+	jsonRoleAndGroupData := []byte(statements[0])
 
 	var rag RolesAndGroups
 
@@ -184,32 +188,6 @@ func newUser(ctx context.Context, db *gocb.Cluster, username string, req newdbpl
 	return nil
 }
 
-func newUsername(config newdbplugin.UsernameMetadata) (string, error) {
-	displayName := trunc(config.DisplayName, 8)
-	roleName := trunc(config.RoleName, 8)
-	userUUID, err := credsutil.RandomAlphaNumeric(20, false)
-	if err != nil {
-		return "", err
-	}
-
-	now := fmt.Sprint(time.Now().Unix())
-
-	parts := []string{
-		"v",
-		displayName,
-		roleName,
-		userUUID,
-		now,
-	}
-
-	username := joinNonEmpty("_", parts...)
-	username = trunc(username, 30)
-	username = strings.Replace(username, "-", "_", -1)
-	username = strings.Replace(username, ".", "_", -1)
-
-	return username, nil
-}
-
 func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password string) error {
 	c.Lock()
 	defer c.Unlock()
@@ -232,7 +210,7 @@ func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password
 	user, err := mgr.GetUser(username, nil)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to retrieve user %s: %w", username, err)
 	}
 	user.User.Password = password
 
@@ -260,38 +238,6 @@ func removeEmpty(strs []string) []string {
 	}
 
 	return newStrs
-}
-
-func trunc(str string, l int) string {
-	if len(str) < l {
-		return str
-	}
-	return str[:l]
-}
-
-func joinNonEmpty(sep string, vals ...string) string {
-	if sep == "" {
-		return strings.Join(vals, sep)
-	}
-
-	switch len(vals) {
-	case 0:
-		return ""
-	case 1:
-		return vals[0]
-	}
-
-	builder := &strings.Builder{}
-	for _, val := range vals {
-		if val == "" {
-			continue
-		}
-		if builder.Len() > 0 {
-			builder.WriteString(sep)
-		}
-		builder.WriteString(val)
-	}
-	return builder.String()
 }
 
 func computeTimeout(ctx context.Context) (timeout time.Duration) {
