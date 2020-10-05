@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/hashicorp/vault/sdk/database/dbplugin"
+	"github.com/hashicorp/vault/sdk/database/newdbplugin"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
 )
@@ -205,8 +205,13 @@ func testGetCouchbaseVersion(t *testing.T, address string) {
 
 func setupCouchbaseDBInitialize(t *testing.T, connectionDetails map[string]interface{}) (err error) {
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err = db.Init(context.Background(), connectionDetails, true)
+	_, err = db.Initialize(context.Background(), initReq)
 	if err != nil {
 		return err
 	}
@@ -326,39 +331,49 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("Failed to initialize database: %s", err)
 	}
 
 	if !db.Initialized {
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{
-		Creation: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
+	password := "y8fva_sdVA3rasf"
+
+	createReq := newdbplugin.NewUserRequest{
+		UsernameConfig: newdbplugin.UsernameMetadata{
+			DisplayName: "test",
+			RoleName:    "test",
+		},
+		Statements: newdbplugin.Statements{
+			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
 	}
 
-	usernameConfig := dbplugin.UsernameConfig{
-		DisplayName: "test",
-		RoleName:    "test",
-	}
-
-	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	userResp, err := db.NewUser(context.Background(), createReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password, address, port); err != nil {
+	if err := checkCredsExist(t, userResp.Username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username, address, port)
+	err = revokeUser(t, userResp.Username, address, port)
 	if err != nil {
-		t.Fatalf("Could not revoke user: %s", username)
+		t.Fatalf("Could not revoke user: %s", userResp.Username)
 	}
 }
 
@@ -380,8 +395,13 @@ func checkCredsExist(t *testing.T, username, password, address string, port int)
 
 	time.Sleep(1 * time.Second) // a brief pause to let couchbase finish creating the account
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -409,8 +429,13 @@ func revokeUser(t *testing.T, username, address string, port int) error {
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -419,9 +444,9 @@ func revokeUser(t *testing.T, username, address string, port int) error {
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{}
+	delUserReq := newdbplugin.DeleteUserRequest{Username: username}
 
-	err = db.RevokeUser(context.Background(), statements, username)
+	_, err = db.DeleteUser(context.Background(), delUserReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -444,8 +469,13 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -454,30 +484,36 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{
-		Creation: []string{},
+	username := "test"
+	password := "y8fva_sdVA3rasf"
+
+	createReq := newdbplugin.NewUserRequest{
+		UsernameConfig: newdbplugin.UsernameMetadata{
+			DisplayName: username,
+			RoleName:    username,
+		},
+		Statements: newdbplugin.Statements{
+			Commands: []string{},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
 	}
 
-	usernameConfig := dbplugin.UsernameConfig{
-		DisplayName: "test",
-		RoleName:    "test",
-	}
-
-	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	userResp, err := db.NewUser(context.Background(), createReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	db.Close()
-
-	if err := checkCredsExist(t, username, password, address, port); err != nil {
+	if err := checkCredsExist(t, userResp.Username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username, address, port)
+	err = revokeUser(t, userResp.Username, address, port)
 	if err != nil {
 		t.Fatalf("Could not revoke user: %s", username)
 	}
+
+	db.Close()
 }
 
 func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) {
@@ -497,8 +533,13 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -507,29 +548,34 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{
-		Creation: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
+	password := "y8fva_sdVA3rasf"
+
+	createReq := newdbplugin.NewUserRequest{
+		UsernameConfig: newdbplugin.UsernameMetadata{
+			DisplayName: "test",
+			RoleName:    "test",
+		},
+		Statements: newdbplugin.Statements{
+			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
 	}
 
-	usernameConfig := dbplugin.UsernameConfig{
-		DisplayName: "test",
-		RoleName:    "test",
-	}
-
-	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	userResp, err := db.NewUser(context.Background(), createReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password, address, port); err != nil {
+	if err := checkCredsExist(t, userResp.Username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username, address, port)
+	err = revokeUser(t, userResp.Username, address, port)
 	if err != nil {
-		t.Fatalf("Could not revoke user: %s", username)
+		t.Fatalf("Could not revoke user: %s", userResp.Username)
 	}
 }
 
@@ -555,8 +601,13 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -565,29 +616,34 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{
-		Creation: []string{testCouchbaseGroup},
+	password := "y8fva_sdVA3rasf"
+
+	createReq := newdbplugin.NewUserRequest{
+		UsernameConfig: newdbplugin.UsernameMetadata{
+			DisplayName: "test",
+			RoleName:    "test",
+		},
+		Statements: newdbplugin.Statements{
+			Commands: []string{fmt.Sprintf(testCouchbaseGroup)},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
 	}
 
-	usernameConfig := dbplugin.UsernameConfig{
-		DisplayName: "test",
-		RoleName:    "test",
-	}
-
-	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	userResp, err := db.NewUser(context.Background(), createReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password, address, port); err != nil {
+	if err := checkCredsExist(t, userResp.Username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username, address, port)
+	err = revokeUser(t, userResp.Username, address, port)
 	if err != nil {
-		t.Fatalf("Could not revoke user: %s", username)
+		t.Fatalf("Could not revoke user: %s", userResp.Username)
 	}
 }
 func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port int) {
@@ -611,8 +667,13 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -621,29 +682,34 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{
-		Creation: []string{fmt.Sprintf(testCouchbaseRoleAndGroup, bucketName)},
+	password := "y8fva_sdVA3rasf"
+
+	createReq := newdbplugin.NewUserRequest{
+		UsernameConfig: newdbplugin.UsernameMetadata{
+			DisplayName: "test",
+			RoleName:    "test",
+		},
+		Statements: newdbplugin.Statements{
+			Commands: []string{fmt.Sprintf(testCouchbaseRoleAndGroup, bucketName)},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
 	}
 
-	usernameConfig := dbplugin.UsernameConfig{
-		DisplayName: "test",
-		RoleName:    "test",
-	}
-
-	username, password, err := db.CreateUser(context.Background(), statements, usernameConfig, time.Now().Add(time.Minute))
+	userResp, err := db.NewUser(context.Background(), createReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	db.Close()
 
-	if err := checkCredsExist(t, username, password, address, port); err != nil {
+	if err := checkCredsExist(t, userResp.Username, password, address, port); err != nil {
 		t.Fatalf("Could not connect with new credentials: %s", err)
 	}
 
-	err = revokeUser(t, username, address, port)
+	err = revokeUser(t, userResp.Username, address, port)
 	if err != nil {
-		t.Fatalf("Could not revoke user: %s", username)
+		t.Fatalf("Could not revoke user: %s", userResp.Username)
 	}
 }
 func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int) {
@@ -662,8 +728,13 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -674,9 +745,14 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 
 	defer db.Close()
 
-	statements := []string{""}
+	updateReq := newdbplugin.UpdateUserRequest{
+		Username: "rotate-root",
+		Password: &newdbplugin.ChangePassword{
+			NewPassword: "newpassword",
+		},
+	}
 
-	password, err := db.RotateRootCredentials(context.Background(), statements)
+	_, err = db.UpdateUser(context.Background(), updateReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -684,7 +760,7 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 	// defer setting the password back in case the test fails.
 	defer doCouchbaseDBSetCredentials(t, "rotate-root", "rotate-rootpassword", address, port)
 
-	if err := checkCredsExist(t, db.Username, password["password"].(string), address, port); err != nil {
+	if err := checkCredsExist(t, db.Username, "newpassword", address, port); err != nil {
 		t.Fatalf("Could not connect with new RotatedRootcredentials: %s", err)
 	}
 }
@@ -703,8 +779,13 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		connectionDetails["bucket_name"] = bucketName
 	}
 
+	initReq := newdbplugin.InitializeRequest{
+		Config:           connectionDetails,
+		VerifyConnection: true,
+	}
+
 	db := new()
-	_, err := db.Init(context.Background(), connectionDetails, true)
+	_, err := db.Initialize(context.Background(), initReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -713,28 +794,29 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		t.Fatal("Database should be initialized")
 	}
 
-	statements := dbplugin.Statements{}
-
 	// test that SetCredentials fails if the user does not exist...
-
-	staticUser := dbplugin.StaticUserConfig{
+	updateReq := newdbplugin.UpdateUserRequest{
 		Username: "userThatDoesNotExist",
-		Password: password,
+		Password: &newdbplugin.ChangePassword{
+			NewPassword: "goodPassword",
+		},
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5000*time.Millisecond)
 	defer cancel()
-	_, _, err = db.SetCredentials(ctx, statements, staticUser)
+	_, err = db.UpdateUser(ctx, updateReq)
 	if err == nil {
 		t.Fatalf("err: did not error on setting password for userThatDoesNotExist")
 	}
 
-	staticUser = dbplugin.StaticUserConfig{
+	updateReq = newdbplugin.UpdateUserRequest{
 		Username: username,
-		Password: password,
+		Password: &newdbplugin.ChangePassword{
+			NewPassword: password,
+		},
 	}
 
-	username, password, err = db.SetCredentials(context.Background(), statements, staticUser)
+	_, err = db.UpdateUser(context.Background(), updateReq)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
