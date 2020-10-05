@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	couchbaseTypeName = "couchbase"
+	couchbaseTypeName        = "couchbase"
 	defaultCouchbaseUserRole = `{"Roles": [{"role":"ro_admin"}]}`
-	defaultTimeout    = 20000 * time.Millisecond
-	maxKeyLength      = 64
+	defaultTimeout           = 20000 * time.Millisecond
+	maxKeyLength             = 64
 )
 
 var (
