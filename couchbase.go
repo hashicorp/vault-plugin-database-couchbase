@@ -66,7 +66,7 @@ func Run(apiTLSConfig *api.TLSConfig) error {
 		return err
 	}
 
-	newdbplugin.Serve(db.(newdbplugin.Database), api.VaultPluginTLSProvider(apiTLSConfig))
+	newdbplugin.Serve(db.(newdbplugin.Database))
 
 	return nil
 }
