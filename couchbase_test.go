@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/hashicorp/vault/sdk/database/newdbplugin"
+	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
 )
@@ -205,7 +205,7 @@ func testGetCouchbaseVersion(t *testing.T, address string) {
 
 func setupCouchbaseDBInitialize(t *testing.T, connectionDetails map[string]interface{}) (err error) {
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -331,7 +331,7 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -348,12 +348,12 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 
 	password := "y8fva_sdVA3rasf"
 
-	createReq := newdbplugin.NewUserRequest{
-		UsernameConfig: newdbplugin.UsernameMetadata{
+	createReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
 			DisplayName: "test",
 			RoleName:    "test",
 		},
-		Statements: newdbplugin.Statements{
+		Statements: dbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
 		},
 		Password:   password,
@@ -395,7 +395,7 @@ func checkCredsExist(t *testing.T, username, password, address string, port int)
 
 	time.Sleep(1 * time.Second) // a brief pause to let couchbase finish creating the account
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -429,7 +429,7 @@ func revokeUser(t *testing.T, username, address string, port int) error {
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -444,7 +444,7 @@ func revokeUser(t *testing.T, username, address string, port int) error {
 		t.Fatal("Database should be initialized")
 	}
 
-	delUserReq := newdbplugin.DeleteUserRequest{Username: username}
+	delUserReq := dbplugin.DeleteUserRequest{Username: username}
 
 	_, err = db.DeleteUser(context.Background(), delUserReq)
 	if err != nil {
@@ -469,7 +469,7 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -487,12 +487,12 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 	username := "test"
 	password := "y8fva_sdVA3rasf"
 
-	createReq := newdbplugin.NewUserRequest{
-		UsernameConfig: newdbplugin.UsernameMetadata{
+	createReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
 			DisplayName: username,
 			RoleName:    username,
 		},
-		Statements: newdbplugin.Statements{
+		Statements: dbplugin.Statements{
 			Commands: []string{},
 		},
 		Password:   password,
@@ -533,7 +533,7 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -550,12 +550,12 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 
 	password := "y8fva_sdVA3rasf"
 
-	createReq := newdbplugin.NewUserRequest{
-		UsernameConfig: newdbplugin.UsernameMetadata{
+	createReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
 			DisplayName: "test",
 			RoleName:    "test",
 		},
-		Statements: newdbplugin.Statements{
+		Statements: dbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
 		},
 		Password:   password,
@@ -601,7 +601,7 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -618,12 +618,12 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 
 	password := "y8fva_sdVA3rasf"
 
-	createReq := newdbplugin.NewUserRequest{
-		UsernameConfig: newdbplugin.UsernameMetadata{
+	createReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
 			DisplayName: "test",
 			RoleName:    "test",
 		},
-		Statements: newdbplugin.Statements{
+		Statements: dbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseGroup)},
 		},
 		Password:   password,
@@ -667,7 +667,7 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -684,12 +684,12 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 
 	password := "y8fva_sdVA3rasf"
 
-	createReq := newdbplugin.NewUserRequest{
-		UsernameConfig: newdbplugin.UsernameMetadata{
+	createReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
 			DisplayName: "test",
 			RoleName:    "test",
 		},
-		Statements: newdbplugin.Statements{
+		Statements: dbplugin.Statements{
 			Commands: []string{fmt.Sprintf(testCouchbaseRoleAndGroup, bucketName)},
 		},
 		Password:   password,
@@ -728,7 +728,7 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -745,9 +745,9 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 
 	defer db.Close()
 
-	updateReq := newdbplugin.UpdateUserRequest{
+	updateReq := dbplugin.UpdateUserRequest{
 		Username: "rotate-root",
-		Password: &newdbplugin.ChangePassword{
+		Password: &dbplugin.ChangePassword{
 			NewPassword: "newpassword",
 		},
 	}
@@ -779,7 +779,7 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		connectionDetails["bucket_name"] = bucketName
 	}
 
-	initReq := newdbplugin.InitializeRequest{
+	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
 	}
@@ -795,9 +795,9 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 	}
 
 	// test that SetCredentials fails if the user does not exist...
-	updateReq := newdbplugin.UpdateUserRequest{
+	updateReq := dbplugin.UpdateUserRequest{
 		Username: "userThatDoesNotExist",
-		Password: &newdbplugin.ChangePassword{
+		Password: &dbplugin.ChangePassword{
 			NewPassword: "goodPassword",
 		},
 	}
@@ -809,9 +809,9 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 		t.Fatalf("err: did not error on setting password for userThatDoesNotExist")
 	}
 
-	updateReq = newdbplugin.UpdateUserRequest{
+	updateReq = dbplugin.UpdateUserRequest{
 		Username: username,
-		Password: &newdbplugin.ChangePassword{
+		Password: &dbplugin.ChangePassword{
 			NewPassword: password,
 		},
 	}
