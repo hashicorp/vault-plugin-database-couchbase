@@ -4,17 +4,11 @@ import (
 	"os"
 
 	hclog "github.com/hashicorp/go-hclog"
-
 	couchbase "github.com/hashicorp/vault-plugin-database-couchbase"
-	"github.com/hashicorp/vault/api"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 )
 
 func main() {
-	apiClientMeta := &api.PluginAPIClientMeta{}
-	flags := apiClientMeta.FlagSet()
-	flags.Parse(os.Args[1:])
-
 	err := Run()
 	if err != nil {
 		logger := hclog.New(&hclog.LoggerOptions{})
