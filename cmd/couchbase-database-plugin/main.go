@@ -5,9 +5,9 @@ import (
 
 	hclog "github.com/hashicorp/go-hclog"
 
-	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	couchbase "github.com/hashicorp/vault-plugin-database-couchbase"
 	"github.com/hashicorp/vault/api"
+	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 )
 
 func main() {
