@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	dbtesting "github.com/hashicorp/vault/sdk/database/dbplugin/v5/testing"
 	"github.com/ory/dockertest"
@@ -171,6 +170,8 @@ func TestNewUser_usernameTemplate(t *testing.T) {
 			cleanup, address, port := prepareCouchbaseTestContainer(t)
 			defer cleanup()
 
+			waitForBucket(t, address, adminUsername, adminPassword, bucketName)
+
 			db := new()
 			defer dbtesting.AssertClose(t, db)
 
@@ -244,27 +245,7 @@ func TestDriver(t *testing.T) {
 		   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
 		    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
 		    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
-
-	if err = backoff.Retry(func() error {
-		t.Log("Waiting for the bucket to be installed.")
-
-		bucketFound, bucketInstalled, err := waitForBucketInstalled(address, adminUsername, adminPassword, bucketName)
-		if err != nil {
-			return err
-		}
-		if bucketFound == false {
-			err := backoff.PermanentError{
-				Err: fmt.Errorf("bucket %s was not found..", bucketName),
-			}
-			return &err
-		}
-		if bucketInstalled == false {
-			return fmt.Errorf("waiting for bucket %s to be installed...", bucketName)
-		}
-		return nil
-	}, backoff.NewExponentialBackOff()); err != nil {
-		t.Fatalf("bucket %s installed check failed: %s", bucketName, err)
-	}
+	waitForBucket(t, address, adminUsername, adminPassword, bucketName)
 
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser(t, address, port) })
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_DefaultRole(t, address, port) })
