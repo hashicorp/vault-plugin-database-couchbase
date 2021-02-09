@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	dbtesting "github.com/hashicorp/vault/sdk/database/dbplugin/v5/testing"
 	"github.com/ory/dockertest"
@@ -185,10 +186,18 @@ func TestNewUser_usernameTemplate(t *testing.T) {
 				},
 				VerifyConnection: true,
 			}
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			f := func() error {
+				_, err := db.Initialize(ctx, initReq)
+				return err
+			}
+			bo := backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 10)
+			backoff.Retry(f, bo)
+			backoff.NewExponentialBackOff()
 			dbtesting.AssertInitialize(t, db, initReq)
 
-			ctx := context.Background()
-			newUserResp, err := db.NewUser(ctx, test.newUserReq)
+			newUserResp, err := db.NewUser(context.Background(), test.newUserReq)
 			require.NoError(t, err)
 			require.Regexp(t, test.expectedUsernameRegex, newUserResp.Username)
 

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/hashicorp/go-version"
@@ -112,15 +113,16 @@ func createGroup(hostname string, port int, adminuser, adminpassword, group, rol
 func waitForBucket(t *testing.T, address, username, password, bucketName string) {
 	t.Logf("Waiting for bucket %s...", bucketName)
 	f := func() error {
-		return isBucketInstalled(address, username, password, bucketName)
+		return checkBucketReady(address, username, password, bucketName)
 	}
-	err := backoff.Retry(f, backoff.NewExponentialBackOff())
+	bo := backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 10)
+	err := backoff.Retry(f, bo)
 	if err != nil {
 		t.Fatalf("bucket %s installed check failed: %s", bucketName, err)
 	}
 }
 
-func isBucketInstalled(address, username, password, bucket string) (err error) {
+func checkBucketReady(address, username, password, bucket string) (err error) {
 	resp, err := http.Get(fmt.Sprintf("http://%s:%s@%s:8091/sampleBuckets", username, password, address))
 	if err != nil {
 		return err
