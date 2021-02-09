@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	dbtesting "github.com/hashicorp/vault/sdk/database/dbplugin/v5/testing"
 	"github.com/ory/dockertest"
@@ -111,100 +110,13 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		if resp.StatusCode != 200 {
 			return fmt.Errorf("Got a %d status code from couchbase's Web Console", resp.StatusCode)
 		}
-		time.Sleep(1 * time.Second) // Because sometimes the web console is up but the server isn't ready for requests
 		return nil
 	}); err != nil {
-		t.Fatalf("Could not connect to couchbase: %s", err)
 		cleanup()
+		t.Fatalf("Could not connect to couchbase: %s", err)
 	}
 
 	return cleanup, "0.0.0.0", 8091
-}
-
-func TestNewUser_usernameTemplate(t *testing.T) {
-	type testCase struct {
-		usernameTemplate string
-
-		newUserReq            dbplugin.NewUserRequest
-		expectedUsernameRegex string
-	}
-
-	tests := map[string]testCase{
-		"default username template": {
-			usernameTemplate: "",
-
-			newUserReq: dbplugin.NewUserRequest{
-				UsernameConfig: dbplugin.UsernameMetadata{
-					DisplayName: "token",
-					RoleName:    "testrolenamewithmanycharacters",
-				},
-				Statements: dbplugin.Statements{
-					Commands: []string{testCouchbaseRole},
-				},
-				Password:   "98yq3thgnakjsfhjkl",
-				Expiration: time.Now().Add(time.Minute),
-			},
-
-			expectedUsernameRegex: "^V_TOKEN_TESTROLENAMEWITHMANYCHARACTERS_[A-Z0-9]{20}_[0-9]{10}$",
-		},
-		"custom username template": {
-			usernameTemplate: "{{random 2 | uppercase}}_{{unix_time}}_{{.RoleName | uppercase}}_{{.DisplayName | uppercase}}",
-
-			newUserReq: dbplugin.NewUserRequest{
-				UsernameConfig: dbplugin.UsernameMetadata{
-					DisplayName: "token",
-					RoleName:    "testrolenamewithmanycharacters",
-				},
-				Statements: dbplugin.Statements{
-					Commands: []string{testCouchbaseRole},
-				},
-				Password:   "98yq3thgnakjsfhjkl",
-				Expiration: time.Now().Add(time.Minute),
-			},
-
-			expectedUsernameRegex: "^[A-Z0-9]{2}_[0-9]{10}_TESTROLENAMEWITHMANYCHARACTERS_TOKEN$",
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			cleanup, address, port := prepareCouchbaseTestContainer(t)
-			defer cleanup()
-
-			waitForBucket(t, address, adminUsername, adminPassword, bucketName)
-
-			db := new()
-			defer dbtesting.AssertClose(t, db)
-
-			initReq := dbplugin.InitializeRequest{
-				Config: map[string]interface{}{
-					"hosts":             address,
-					"port":              port,
-					"username":          adminUsername,
-					"password":          adminPassword,
-					"username_template": test.usernameTemplate,
-				},
-				VerifyConnection: true,
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			f := func() error {
-				_, err := db.Initialize(ctx, initReq)
-				return err
-			}
-			bo := backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 10)
-			err := backoff.Retry(f, bo)
-			require.NoError(t, err)
-
-			newUserResp, err := db.NewUser(context.Background(), test.newUserReq)
-			require.NoError(t, err)
-			require.Regexp(t, test.expectedUsernameRegex, newUserResp.Username)
-
-			if err := checkCredsExist(t, newUserResp.Username, test.newUserReq.Password, address, port); err != nil {
-				t.Fatalf("Could not connect to database: %s", err)
-			}
-		})
-	}
 }
 
 func TestDriver(t *testing.T) {
@@ -264,6 +176,52 @@ func TestDriver(t *testing.T) {
 	t.Run("Creds", func(t *testing.T) { testCouchbaseDBSetCredentials(t, address, port) })
 	t.Run("Secret", func(t *testing.T) { testConnectionProducerSecretValues(t) })
 	t.Run("TimeoutCalc", func(t *testing.T) { testComputeTimeout(t) })
+
+	t.Run("custom username template", func(t *testing.T) {
+		bucket := ""
+		if pre6dot5 {
+			bucket = bucketName
+		}
+		initReq := dbplugin.InitializeRequest{
+			Config: map[string]interface{}{
+				"hosts":             address,
+				"port":              port,
+				"username":          adminUsername,
+				"password":          adminPassword,
+				"bucket_name":       bucket,
+				"username_template": "{{random 2 | uppercase}}_{{unix_time}}_{{.RoleName | uppercase}}_{{.DisplayName | uppercase}}",
+			},
+			VerifyConnection: true,
+		}
+
+		db := new()
+		defer dbtesting.AssertClose(t, db)
+
+		dbtesting.AssertInitialize(t, db, initReq)
+
+		password := "98yq3thgnakjsfhjkl"
+		newUserReq := dbplugin.NewUserRequest{
+			UsernameConfig: dbplugin.UsernameMetadata{
+				DisplayName: "token",
+				RoleName:    "testrolenamewithmanycharacters",
+			},
+			Statements: dbplugin.Statements{
+				Commands: []string{testCouchbaseRole},
+			},
+			Password:   password,
+			Expiration: time.Now().Add(time.Minute),
+		}
+
+		expectedUsernameRegex := "^[A-Z0-9]{2}_[0-9]{10}_TESTROLENAMEWITHMANYCHARACTERS_TOKEN$"
+
+		newUserResp, err := db.NewUser(context.Background(), newUserReq)
+		require.NoError(t, err)
+		require.Regexp(t, expectedUsernameRegex, newUserResp.Username)
+
+		if err := checkCredsExist(t, newUserResp.Username, password, address, port); err != nil {
+			t.Fatalf("Could not connect to database: %s", err)
+		}
+	})
 }
 
 func testGetCouchbaseVersion(t *testing.T, address string) {
