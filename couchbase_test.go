@@ -193,9 +193,8 @@ func TestNewUser_usernameTemplate(t *testing.T) {
 				return err
 			}
 			bo := backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 10)
-			backoff.Retry(f, bo)
-			backoff.NewExponentialBackOff()
-			dbtesting.AssertInitialize(t, db, initReq)
+			err := backoff.Retry(f, bo)
+			require.NoError(t, err)
 
 			newUserResp, err := db.NewUser(context.Background(), test.newUserReq)
 			require.NoError(t, err)
