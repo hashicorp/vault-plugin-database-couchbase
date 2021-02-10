@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
+	dbtesting "github.com/hashicorp/vault/sdk/database/dbplugin/v5/testing"
 	"github.com/ory/dockertest"
 	dc "github.com/ory/dockertest/docker"
+	"github.com/stretchr/testify/require"
 )
 
 var pre6dot5 = false // check for Pre 6.5.0 Couchbase
@@ -21,6 +22,12 @@ const (
 	adminUsername = "Administrator"
 	adminPassword = "password"
 	bucketName    = "travel-sample"
+)
+
+var (
+	testCouchbaseRole         = fmt.Sprintf(`{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}]}`, bucketName)
+	testCouchbaseGroup        = `{"groups":["g1", "g2"]}`
+	testCouchbaseRoleAndGroup = fmt.Sprintf(`{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}],"groups":["g1", "g2"]}`, bucketName)
 )
 
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
@@ -105,17 +112,15 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 		}
 		return nil
 	}); err != nil {
-		t.Fatalf("Could not connect to couchbase: %s", err)
 		cleanup()
+		t.Fatalf("Could not connect to couchbase: %s", err)
 	}
 
 	return cleanup, "0.0.0.0", 8091
 }
 
 func TestDriver(t *testing.T) {
-	// Spin up couchbase
 	cleanup, address, port := prepareCouchbaseTestContainer(t)
-
 	defer cleanup()
 
 	err := createUser(address, port, adminUsername, adminPassword, "rotate-root", "rotate-rootpassword",
@@ -160,27 +165,7 @@ func TestDriver(t *testing.T) {
 		   [{"name":"beer-sample","installed":false,"quotaNeeded":104857600},
 		    {"name":"gamesim-sample","installed":false,"quotaNeeded":104857600},
 		    {"name":"travel-sample","installed":false,"quotaNeeded":104857600}] */
-
-	if err = backoff.Retry(func() error {
-		t.Log("Waiting for the bucket to be installed.")
-
-		bucketFound, bucketInstalled, err := waitForBucketInstalled(address, adminUsername, adminPassword, bucketName)
-		if err != nil {
-			return err
-		}
-		if bucketFound == false {
-			err := backoff.PermanentError{
-				Err: fmt.Errorf("bucket %s was not found..", bucketName),
-			}
-			return &err
-		}
-		if bucketInstalled == false {
-			return fmt.Errorf("waiting for bucket %s to be installed...", bucketName)
-		}
-		return nil
-	}, backoff.NewExponentialBackOff()); err != nil {
-		t.Fatalf("bucket %s installed check failed: %s", bucketName, err)
-	}
+	waitForBucket(t, address, adminUsername, adminPassword, bucketName)
 
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser(t, address, port) })
 	t.Run("Create/Revoke", func(t *testing.T) { testCouchbaseDBCreateUser_DefaultRole(t, address, port) })
@@ -191,6 +176,52 @@ func TestDriver(t *testing.T) {
 	t.Run("Creds", func(t *testing.T) { testCouchbaseDBSetCredentials(t, address, port) })
 	t.Run("Secret", func(t *testing.T) { testConnectionProducerSecretValues(t) })
 	t.Run("TimeoutCalc", func(t *testing.T) { testComputeTimeout(t) })
+
+	t.Run("custom username template", func(t *testing.T) {
+		bucket := ""
+		if pre6dot5 {
+			bucket = bucketName
+		}
+		initReq := dbplugin.InitializeRequest{
+			Config: map[string]interface{}{
+				"hosts":             address,
+				"port":              port,
+				"username":          adminUsername,
+				"password":          adminPassword,
+				"bucket_name":       bucket,
+				"username_template": "{{random 2 | uppercase}}_{{unix_time}}_{{.RoleName | uppercase}}_{{.DisplayName | uppercase}}",
+			},
+			VerifyConnection: true,
+		}
+
+		db := new()
+		defer dbtesting.AssertClose(t, db)
+
+		dbtesting.AssertInitialize(t, db, initReq)
+
+		password := "98yq3thgnakjsfhjkl"
+		newUserReq := dbplugin.NewUserRequest{
+			UsernameConfig: dbplugin.UsernameMetadata{
+				DisplayName: "token",
+				RoleName:    "testrolenamewithmanycharacters",
+			},
+			Statements: dbplugin.Statements{
+				Commands: []string{testCouchbaseRole},
+			},
+			Password:   password,
+			Expiration: time.Now().Add(time.Minute),
+		}
+
+		expectedUsernameRegex := "^[A-Z0-9]{2}_[0-9]{10}_TESTROLENAMEWITHMANYCHARACTERS_TOKEN$"
+
+		newUserResp, err := db.NewUser(context.Background(), newUserReq)
+		require.NoError(t, err)
+		require.Regexp(t, expectedUsernameRegex, newUserResp.Username)
+
+		if err := checkCredsExist(t, newUserResp.Username, password, address, port); err != nil {
+			t.Fatalf("Could not connect to database: %s", err)
+		}
+	})
 }
 
 func testGetCouchbaseVersion(t *testing.T, address string) {
@@ -316,9 +347,6 @@ func testCouchbaseDBInitialize_Pre6dot5NoTLS(t *testing.T, address string, port 
 }
 
 func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	t.Log("Testing CreateUser()")
 
 	connectionDetails := map[string]interface{}{
@@ -354,7 +382,7 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 			RoleName:    "test",
 		},
 		Statements: dbplugin.Statements{
-			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
+			Commands: []string{testCouchbaseRole},
 		},
 		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
@@ -378,11 +406,6 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 }
 
 func checkCredsExist(t *testing.T, username, password, address string, port int) error {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
-	t.Log("Testing checkCredsExist()")
-
 	connectionDetails := map[string]interface{}{
 		"hosts":    address,
 		"port":     port,
@@ -414,9 +437,6 @@ func checkCredsExist(t *testing.T, username, password, address string, port int)
 }
 
 func revokeUser(t *testing.T, username, address string, port int) error {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	t.Log("Testing RevokeUser()")
 
 	connectionDetails := map[string]interface{}{
@@ -454,9 +474,6 @@ func revokeUser(t *testing.T, username, address string, port int) error {
 }
 
 func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	t.Log("Testing CreateUser_DefaultRole()")
 
 	connectionDetails := map[string]interface{}{
@@ -517,9 +534,6 @@ func testCouchbaseDBCreateUser_DefaultRole(t *testing.T, address string, port in
 }
 
 func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	t.Log("Testing CreateUser_plusRole()")
 
 	connectionDetails := map[string]interface{}{
@@ -556,7 +570,7 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 			RoleName:    "test",
 		},
 		Statements: dbplugin.Statements{
-			Commands: []string{fmt.Sprintf(testCouchbaseRole, bucketName)},
+			Commands: []string{testCouchbaseRole},
 		},
 		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
@@ -581,9 +595,6 @@ func testCouchbaseDBCreateUser_plusRole(t *testing.T, address string, port int) 
 
 // g1 & g2 must exist in the database.
 func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	if pre6dot5 {
 		t.Log("Skipping as groups are not supported pre6.5.0")
 		t.SkipNow()
@@ -647,9 +658,6 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 	}
 }
 func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	if pre6dot5 {
 		t.Log("Skipping as groups are not supported pre6.5.0")
 		t.SkipNow()
@@ -690,7 +698,7 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 			RoleName:    "test",
 		},
 		Statements: dbplugin.Statements{
-			Commands: []string{fmt.Sprintf(testCouchbaseRoleAndGroup, bucketName)},
+			Commands: []string{testCouchbaseRoleAndGroup},
 		},
 		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
@@ -713,9 +721,6 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 	}
 }
 func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
 	t.Log("Testing RotateRootCredentials()")
 
 	connectionDetails := map[string]interface{}{
@@ -829,10 +834,6 @@ func doCouchbaseDBSetCredentials(t *testing.T, username, password, address strin
 }
 
 func testCouchbaseDBSetCredentials(t *testing.T, address string, port int) {
-	if os.Getenv("VAULT_ACC") == "" {
-		t.SkipNow()
-	}
-
 	doCouchbaseDBSetCredentials(t, "vault-edu", "password", address, port)
 }
 
@@ -861,7 +862,3 @@ func testComputeTimeout(t *testing.T) {
 		t.Fatal("WithTimeout failed")
 	}
 }
-
-const testCouchbaseRole = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}]}`
-const testCouchbaseGroup = `{"groups":["g1", "g2"]}`
-const testCouchbaseRoleAndGroup = `{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}],"groups":["g1", "g2"]}`
