@@ -10,9 +10,9 @@ import (
 	"github.com/couchbase/gocb/v2"
 	"github.com/hashicorp/errwrap"
 	hclog "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/strutil"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
-	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/hashicorp/vault/sdk/helper/template"
 )
 
@@ -24,9 +24,7 @@ const (
 	defaultUserNameTemplate = `V_{{.DisplayName | uppercase | truncate 64}}_{{.RoleName | uppercase | truncate 64}}_{{random 20 | uppercase}}_{{unix_time}}`
 )
 
-var (
-	_ dbplugin.Database = &CouchbaseDB{}
-)
+var _ dbplugin.Database = &CouchbaseDB{}
 
 // Type that combines the custom plugins Couchbase database connection configuration options and the Vault CredentialsProducer
 // used for generating user information for the Couchbase database.
@@ -212,7 +210,6 @@ func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password
 	// Get the UserManager
 	mgr := db.Users()
 	user, err := mgr.GetUser(username, nil)
-
 	if err != nil {
 		return fmt.Errorf("unable to retrieve user %s: %w", username, err)
 	}
