@@ -176,52 +176,8 @@ func TestDriver(t *testing.T) {
 	t.Run("Creds", func(t *testing.T) { testCouchbaseDBSetCredentials(t, address, port) })
 	t.Run("Secret", func(t *testing.T) { testConnectionProducerSecretValues(t) })
 	t.Run("TimeoutCalc", func(t *testing.T) { testComputeTimeout(t) })
-
-	t.Run("custom username template", func(t *testing.T) {
-		bucket := ""
-		if pre6dot5 {
-			bucket = bucketName
-		}
-		initReq := dbplugin.InitializeRequest{
-			Config: map[string]interface{}{
-				"hosts":             address,
-				"port":              port,
-				"username":          adminUsername,
-				"password":          adminPassword,
-				"bucket_name":       bucket,
-				"username_template": "{{random 2 | uppercase}}_{{unix_time}}_{{.RoleName | uppercase}}_{{.DisplayName | uppercase}}",
-			},
-			VerifyConnection: true,
-		}
-
-		db := new()
-		defer dbtesting.AssertClose(t, db)
-
-		dbtesting.AssertInitialize(t, db, initReq)
-
-		password := "98yq3thgnakjsfhjkl"
-		newUserReq := dbplugin.NewUserRequest{
-			UsernameConfig: dbplugin.UsernameMetadata{
-				DisplayName: "token",
-				RoleName:    "testrolenamewithmanycharacters",
-			},
-			Statements: dbplugin.Statements{
-				Commands: []string{testCouchbaseRole},
-			},
-			Password:   password,
-			Expiration: time.Now().Add(time.Minute),
-		}
-
-		expectedUsernameRegex := "^[A-Z0-9]{2}_[0-9]{10}_TESTROLENAMEWITHMANYCHARACTERS_TOKEN$"
-
-		newUserResp, err := db.NewUser(context.Background(), newUserReq)
-		require.NoError(t, err)
-		require.Regexp(t, expectedUsernameRegex, newUserResp.Username)
-
-		if err := checkCredsExist(t, newUserResp.Username, password, address, port); err != nil {
-			t.Fatalf("Could not connect to database: %s", err)
-		}
-	})
+	t.Run("Create/long username", func(t *testing.T) { testCreateuser_UsernameTemplate_LongUsername(t, address, port) })
+	t.Run("Create/custom username template", func(t *testing.T) { testCreateUser_UsernameTemplate_CustomTemplate(t, address, port) })
 }
 
 func testGetCouchbaseVersion(t *testing.T, address string) {
@@ -860,5 +816,97 @@ func testComputeTimeout(t *testing.T) {
 	defer cancel()
 	if computeTimeout(ctx) == defaultTimeout {
 		t.Fatal("WithTimeout failed")
+	}
+}
+
+func testCreateUser_UsernameTemplate_CustomTemplate(t *testing.T, address string, port int) {
+	bucket := ""
+	if pre6dot5 {
+		bucket = bucketName
+	}
+	initReq := dbplugin.InitializeRequest{
+		Config: map[string]interface{}{
+			"hosts":             address,
+			"port":              port,
+			"username":          adminUsername,
+			"password":          adminPassword,
+			"bucket_name":       bucket,
+			"username_template": "{{random 2 | uppercase}}_{{unix_time}}_{{.RoleName | uppercase}}_{{.DisplayName | uppercase}}",
+		},
+		VerifyConnection: true,
+	}
+
+	db := new()
+	defer dbtesting.AssertClose(t, db)
+
+	dbtesting.AssertInitialize(t, db, initReq)
+
+	password := "98yq3thgnakjsfhjkl"
+	newUserReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
+			DisplayName: "token",
+			RoleName:    "testrolenamewithmanycharacters",
+		},
+		Statements: dbplugin.Statements{
+			Commands: []string{testCouchbaseRole},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
+	}
+
+	expectedUsernameRegex := "^[A-Z0-9]{2}_[0-9]{10}_TESTROLENAMEWITHMANYCHARACTERS_TOKEN$"
+
+	newUserResp, err := db.NewUser(context.Background(), newUserReq)
+	require.NoError(t, err)
+	require.Regexp(t, expectedUsernameRegex, newUserResp.Username)
+
+	if err := checkCredsExist(t, newUserResp.Username, password, address, port); err != nil {
+		t.Fatalf("Could not connect to database: %s", err)
+	}
+}
+
+func testCreateuser_UsernameTemplate_LongUsername(t *testing.T, address string, port int) {
+	bucket := ""
+	if pre6dot5 {
+		bucket = bucketName
+	}
+	initReq := dbplugin.InitializeRequest{
+		Config: map[string]interface{}{
+			"hosts":       address,
+			"port":        port,
+			"username":    adminUsername,
+			"password":    adminPassword,
+			"bucket_name": bucket,
+		},
+		VerifyConnection: true,
+	}
+
+	db := new()
+	defer dbtesting.AssertClose(t, db)
+
+	dbtesting.AssertInitialize(t, db, initReq)
+
+	password := "98yq3thgnakjsfhjkl"
+	newUserReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
+			DisplayName: "thisissomereallylongdisplaynameforthetemplate123456789012345678901234567890",
+			RoleName:    "thisissomereallylongrolenameforthetemplate123456789012345678901234567890",
+		},
+		Statements: dbplugin.Statements{
+			Commands: []string{testCouchbaseRole},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
+	}
+
+	// Ensure that we're within the hard cap by couchbase on the default template
+	expectedUsernameRegex := `^.{128}$`
+
+	newUserResp, err := db.NewUser(context.Background(), newUserReq)
+	require.NoError(t, err)
+	require.Regexp(t, expectedUsernameRegex, newUserResp.Username)
+
+	if err := checkCredsExist(t, newUserResp.Username, password, address, port); err != nil {
+		t.Fatalf("Could not connect to database: %s", err)
 	}
 }
