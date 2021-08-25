@@ -47,6 +47,10 @@ github.com/containerd/typeurl v0.0.0-20180627222232-a93fcdb778cd/go.mod h1:Cm3kw
 github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
 github.com/couchbase/gocb/v2 v2.1.4 h1:HRuVhqZpVNIck3FwzTxWh5TnmGXeTmSfjhxkjeradLg=
 github.com/couchbase/gocb/v2 v2.1.4/go.mod h1:lESKM6wCEajrFVSZUewYuRzNtuNtnRey5wOfcZZsH90=
+github.com/couchbase/gocb/v2 v2.3.1 h1:brvcLKxabqYs3RRCoQOHy0MzfrhWfuODizsi9/YiZeA=
+github.com/couchbase/gocb/v2 v2.3.1/go.mod h1:o0jQ440UXVaRzLBQvsFJhCdKoakRG4qi6Z7ah81dWoc=
+github.com/couchbase/gocbcore/v10 v10.0.2 h1:q4DLS2Rb/Aj9wNaaa9xha02VM0DkaQiAluudoH1EpXE=
+github.com/couchbase/gocbcore/v10 v10.0.2/go.mod h1:s6dwBFs4c3+cAzZbo1q0VW+QasudhHJuehE8b8U2YNg=
 github.com/couchbase/gocbcore/v9 v9.0.4 h1:VM7IiKoK25mq9CdFLLchJMzmHa5Grkn+94pQNaG3oc8=
 github.com/couchbase/gocbcore/v9 v9.0.4/go.mod h1:jOSQeBSECyNvD7aS4lfuaw+pD5t6ciTOf8hrDP/4Nus=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
