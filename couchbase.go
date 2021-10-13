@@ -9,7 +9,6 @@ import (
 
 	"github.com/couchbase/gocb/v2"
 	"github.com/hashicorp/errwrap"
-	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/strutil"
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	"github.com/hashicorp/vault/sdk/database/helper/credsutil"
@@ -87,9 +86,9 @@ func (c *CouchbaseDB) Initialize(ctx context.Context, req dbplugin.InitializeReq
 }
 
 func (c *CouchbaseDB) NewUser(ctx context.Context, req dbplugin.NewUserRequest) (dbplugin.NewUserResponse, error) {
-	// Grab the lock
-	c.Lock()
-	defer c.Unlock()
+	// Don't let anyone write the config while we're using it
+	c.RLock()
+	defer c.RUnlock()
 
 	username, err := c.usernameProducer.Generate(req.UsernameConfig)
 	if err != nil {
@@ -123,21 +122,14 @@ func (c *CouchbaseDB) UpdateUser(ctx context.Context, req dbplugin.UpdateUserReq
 }
 
 func (c *CouchbaseDB) DeleteUser(ctx context.Context, req dbplugin.DeleteUserRequest) (dbplugin.DeleteUserResponse, error) {
-	c.Lock()
-	defer c.Unlock()
+	// Don't let anyone write the config while we're using it
+	c.RLock()
+	defer c.RUnlock()
 
 	db, err := c.getConnection(ctx)
 	if err != nil {
 		return dbplugin.DeleteUserResponse{}, fmt.Errorf("failed to make connection: %w", err)
 	}
-
-	// Close the database connection to ensure no new connections come in
-	defer func() {
-		if err := c.close(); err != nil {
-			logger := hclog.New(&hclog.LoggerOptions{})
-			logger.Error("defer close failed", "error", err)
-		}
-	}()
 
 	// Get the UserManager
 	mgr := db.Users()
@@ -191,21 +183,14 @@ func newUser(ctx context.Context, db *gocb.Cluster, username string, req dbplugi
 }
 
 func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password string) error {
-	c.Lock()
-	defer c.Unlock()
+	// Don't let anyone write the config while we're using it
+	c.RLock()
+	defer c.RUnlock()
 
 	db, err := c.getConnection(ctx)
 	if err != nil {
 		return err
 	}
-
-	// Close the database connection to ensure no new connections come in
-	defer func() {
-		if err := c.close(); err != nil {
-			logger := hclog.New(&hclog.LoggerOptions{})
-			logger.Error("defer close failed", "error", err)
-		}
-	}()
 
 	// Get the UserManager
 	mgr := db.Users()
