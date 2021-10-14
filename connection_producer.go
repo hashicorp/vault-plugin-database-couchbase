@@ -100,8 +100,8 @@ func (c *couchbaseDBConnectionProducer) Initialize(ctx context.Context, config m
 }
 
 func (c *couchbaseDBConnectionProducer) Connection(ctx context.Context) (interface{}, error) {
-	// This is intentionally not grabbing the lock since the calling functions (e.g. CreateUser)
-	// are claiming it. (The locking patterns could be refactored to be more consistent/clear.)
+	// This is intentionally not grabbing the lock since the calling functions
+	// (e.g. CreateUser) are claiming it.
 
 	if !c.Initialized {
 		return nil, connutil.ErrNotInitialized
