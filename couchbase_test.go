@@ -11,8 +11,8 @@ import (
 
 	dbplugin "github.com/hashicorp/vault/sdk/database/dbplugin/v5"
 	dbtesting "github.com/hashicorp/vault/sdk/database/dbplugin/v5/testing"
-	"github.com/ory/dockertest"
-	dc "github.com/ory/dockertest/docker"
+	"github.com/ory/dockertest/v3"
+	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
 )
 
@@ -181,7 +181,6 @@ func TestDriver(t *testing.T) {
 }
 
 func testGetCouchbaseVersion(t *testing.T, address string) {
-
 	var err error
 	pre6dot5, err = CheckForOldCouchbaseVersion(address, adminUsername, adminPassword)
 	if err != nil {
@@ -191,7 +190,6 @@ func testGetCouchbaseVersion(t *testing.T, address string) {
 }
 
 func setupCouchbaseDBInitialize(t *testing.T, connectionDetails map[string]interface{}) (err error) {
-
 	initReq := dbplugin.InitializeRequest{
 		Config:           connectionDetails,
 		VerifyConnection: true,
@@ -213,6 +211,7 @@ func setupCouchbaseDBInitialize(t *testing.T, connectionDetails map[string]inter
 	}
 	return nil
 }
+
 func testCouchbaseDBInitialize_TLS(t *testing.T, address string, port int) {
 	t.Log("Testing TLS Init()")
 
@@ -242,6 +241,7 @@ func testCouchbaseDBInitialize_TLS(t *testing.T, address string, port int) {
 		t.Log("Testing TLS Init() failed as expected (no BucketName set)")
 	}
 }
+
 func testCouchbaseDBInitialize_NoTLS(t *testing.T, address string, port int) {
 	t.Log("Testing plain text Init()")
 
@@ -258,8 +258,8 @@ func testCouchbaseDBInitialize_NoTLS(t *testing.T, address string, port int) {
 	if err != nil && pre6dot5 {
 		t.Log("Testing TLS Init() failed as expected (no BucketName set)")
 	}
-
 }
+
 func testCouchbaseDBInitialize_Pre6dot5TLS(t *testing.T, address string, port int) {
 	t.Log("Testing TLS Pre 6.5 Init()")
 
@@ -287,6 +287,7 @@ func testCouchbaseDBInitialize_Pre6dot5TLS(t *testing.T, address string, port in
 	}
 	setupCouchbaseDBInitialize(t, connectionDetails)
 }
+
 func testCouchbaseDBInitialize_Pre6dot5NoTLS(t *testing.T, address string, port int) {
 	t.Log("Testing Pre 6.5 Init()")
 
@@ -613,6 +614,7 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 		t.Fatalf("Could not revoke user: %s", userResp.Username)
 	}
 }
+
 func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port int) {
 	if pre6dot5 {
 		t.Log("Skipping as groups are not supported pre6.5.0")
@@ -676,6 +678,7 @@ func testCouchbaseDBCreateUser_roleAndGroup(t *testing.T, address string, port i
 		t.Fatalf("Could not revoke user: %s", userResp.Username)
 	}
 }
+
 func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int) {
 	t.Log("Testing RotateRootCredentials()")
 
@@ -727,7 +730,6 @@ func testCouchbaseDBRotateRootCredentials(t *testing.T, address string, port int
 }
 
 func doCouchbaseDBSetCredentials(t *testing.T, username, password, address string, port int) {
-
 	t.Log("Testing SetCredentials()")
 
 	connectionDetails := map[string]interface{}{
