@@ -7,7 +7,7 @@ jobs:
     machine:
       docker_layer_caching: true
     environment:
-      GO_VERSION: 1.14.4
+      GO_VERSION: 1.17.2
       GO_TEST_CMD: gotestsum --format=short-verbose --junitfile=test-results/go-test/$${COUCHBASE_VERSION}-results.xml --jsonfile=test-results/go-test/$${COUCHBASE_VERSION}-results.json --
       GOTESTSUM_VERSION: 0.5.2
     #### TEMPLATE_NOTE: go expects specific checkout path representing url
