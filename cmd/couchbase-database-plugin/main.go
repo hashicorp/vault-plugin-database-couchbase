@@ -20,12 +20,7 @@ func main() {
 
 // Run instantiates a CouchbaseDB object, and runs the RPC server for the plugin
 func Run() error {
-	db, err := couchbase.New()
-	if err != nil {
-		return err
-	}
-
-	dbplugin.Serve(db.(dbplugin.Database))
+	dbplugin.ServeMultiplex(couchbase.New)
 
 	return nil
 }
