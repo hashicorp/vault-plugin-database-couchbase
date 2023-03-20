@@ -41,4 +41,4 @@ fmtcheck:
 fmt:
 	gofmt -w $(GOFMT_FILES)
 
-.PHONY: bin default dev test testcompile fmtcheck fmt
+.PHONY: bin default dev dev-vault test testacc testcompile fmtcheck fmt
