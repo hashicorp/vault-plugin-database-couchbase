@@ -4,72 +4,59 @@
 
 set -e
 
-MNT_PATH="couchbase"
-PLUGIN_NAME="vault-plugin-database-couchbase"
-PLUGIN_CATALOG_NAME="couchbase"
-
+TOOL=couchbase-database-plugin
 #
-# Helper script for local development. Automatically builds and registers the
-# plugin. Requires `vault` is installed and available on $PATH.
-#
+# This script builds the application from source for multiple platforms.
+set -e
 
-# Get the right dir
-DIR="$(cd "$(dirname "$(readlink "$0")")" && pwd)"
+GO_CMD=${GO_CMD:-go}
 
-echo "==> Starting dev"
+# Get the parent directory of where this script is.
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
+DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
-echo "--> Scratch dir"
-echo "    Creating"
-SCRATCH="$DIR/tmp"
-mkdir -p "$SCRATCH/plugins"
+# Change into that directory
+cd "$DIR"
 
-echo "--> Vault server"
-echo "    Writing config"
-tee "$SCRATCH/vault.hcl" > /dev/null <<EOF
-plugin_directory = "$SCRATCH/plugins"
-EOF
+# Set build tags
+BUILD_TAGS="${BUILD_TAGS}:-${TOOL}"
 
-echo "    Envvars"
-export VAULT_DEV_ROOT_TOKEN_ID="root"
-export VAULT_ADDR="http://127.0.0.1:8200"
+# Get the git commit
+GIT_COMMIT="$(git rev-parse HEAD)"
+GIT_DIRTY="$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)"
 
-echo "    Starting"
-vault server \
-  -dev \
-  -log-level="debug" \
-  -config="$SCRATCH/vault.hcl" \
-  -dev-ha -dev-transactional -dev-root-token-id=root \
-  &
-sleep 2
-VAULT_PID=$!
+GOPATH=${GOPATH:-$(go env GOPATH)}
+case $(uname) in
+    CYGWIN*)
+        GOPATH="$(cygpath $GOPATH)"
+        ;;
+esac
 
-function cleanup {
-  echo ""
-  echo "==> Cleaning up"
-  kill -INT "$VAULT_PID"
-  rm -rf "$SCRATCH"
-}
-trap cleanup EXIT SIGINT
+# Delete the old dir
+echo "==> Removing old directory..."
+rm -f bin/*
+rm -rf pkg/*
+mkdir -p bin/
 
-echo "    Authing"
-vault login root &>/dev/null
+# Build!
+echo "==> Building..."
+${GO_CMD} build \
+    -gcflags "${GCFLAGS}" \
+    -ldflags "-X github.com/hashicorp/${TOOL}/version.GitCommit='${GIT_COMMIT}${GIT_DIRTY}'" \
+    -o "bin/${TOOL}" \
+    -tags "${BUILD_TAGS}" \
+    "${DIR}/cmd/${TOOL}"
 
-echo "--> Building"
-go build -o "$SCRATCH/plugins/$PLUGIN_NAME" "./cmd/couchbase-database-plugin"
-SHASUM=$(shasum -a 256 "$SCRATCH/plugins/$PLUGIN_NAME" | cut -d " " -f1)
+# Move all the compiled things to the $GOPATH/bin
+OLDIFS=$IFS
+IFS=: MAIN_GOPATH=($GOPATH)
+IFS=$OLDIFS
 
-echo "    Registering plugin"
-vault write sys/plugins/catalog/$PLUGIN_CATALOG_NAME \
-  sha_256="$SHASUM" \
-  command="$PLUGIN_NAME"
+rm -f ${MAIN_GOPATH}/bin/${TOOL}
+cp bin/${TOOL} ${MAIN_GOPATH}/bin/
 
-echo "    Mounting plugin"
-vault secrets enable database
-
-if [ -e scripts/custom.sh ]
-then
-  . scripts/custom.sh
-fi
-
-echo "==> Ready!"
-wait $!
+# Done!
+echo
+echo "==> Results:"
+ls -hl bin/
