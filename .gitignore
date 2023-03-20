@@ -1,0 +1,5 @@
+pkg/*
+bin/*
+.idea/*
+vault-plugin-database-couchbase
+couchbase-database-plugin
