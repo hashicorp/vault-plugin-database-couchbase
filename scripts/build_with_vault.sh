@@ -4,6 +4,14 @@
 
 set -e
 
+function cleanup {
+  echo ""
+  echo "==> Cleaning up"
+  kill -INT "$VAULT_PID"
+  rm -rf "$SCRATCH"
+}
+trap cleanup EXIT SIGINT
+
 MNT_PATH="couchbase"
 PLUGIN_NAME="vault-plugin-database-couchbase"
 PLUGIN_CATALOG_NAME="couchbase"
@@ -33,6 +41,8 @@ echo "    Envvars"
 export VAULT_DEV_ROOT_TOKEN_ID="root"
 export VAULT_ADDR="http://127.0.0.1:8200"
 
+if vault status >/dev/null 2>&1; then echo "     ERROR: Vault is already running."; exit 1; fi
+
 echo "    Starting"
 vault server \
   -dev \
@@ -42,14 +52,6 @@ vault server \
   &
 sleep 2
 VAULT_PID=$!
-
-function cleanup {
-  echo ""
-  echo "==> Cleaning up"
-  kill -INT "$VAULT_PID"
-  rm -rf "$SCRATCH"
-}
-trap cleanup EXIT SIGINT
 
 echo "    Authing"
 vault login root &>/dev/null

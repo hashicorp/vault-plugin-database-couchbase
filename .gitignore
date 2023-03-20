@@ -1,3 +1,4 @@
+tmp/
 pkg/*
 bin/*
 .idea/*
