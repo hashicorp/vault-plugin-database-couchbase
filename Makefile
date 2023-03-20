@@ -11,9 +11,8 @@ bin: fmtcheck
 
 default: dev
 
-# dev starts up `vault` from your $PATH, then builds the couchbase
-# plugin, registers it with vault and enables it.
-# A ./tmp dir is created for configs and binaries, and cleaned up on exit.
+# dev creates binaries for testing Vault locally. These are put
+# into ./bin/ as well as $GOPATH/bin.
 dev: fmtcheck
 	@CGO_ENABLED=0 BUILD_TAGS='$(BUILD_TAGS)' VAULT_DEV_BUILD=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
