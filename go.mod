@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-hclog v1.0.0
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-version v1.3.0
-	github.com/hashicorp/vault/sdk v0.5.3
+	github.com/hashicorp/vault/sdk v0.8.1
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0
@@ -20,7 +20,5 @@ require (
 	github.com/ory/dockertest/v3 v3.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
-	golang.org/x/net v0.0.0-20211008194852-3b03d305991f // indirect
-	golang.org/x/sys v0.0.0-20211007075335-d3039528d8ac // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
