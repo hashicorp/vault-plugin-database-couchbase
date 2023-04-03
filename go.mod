@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/couchbase/gocb/v2 v2.3.3
+	github.com/couchbase/gocb/v2 v2.6.2
 	github.com/docker/docker v20.10.9+incompatible // indirect
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-hclog v1.5.0
@@ -16,7 +16,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/ory/dockertest/v3 v3.9.1
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.2
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
