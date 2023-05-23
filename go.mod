@@ -15,8 +15,8 @@ require (
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
-	github.com/ory/dockertest/v3 v3.9.1
-	github.com/stretchr/testify v1.7.2
+	github.com/ory/dockertest/v3 v3.10.0
+	github.com/stretchr/testify v1.8.0
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
