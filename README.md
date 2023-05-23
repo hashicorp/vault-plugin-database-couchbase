@@ -1,7 +1,5 @@
 # vault-plugin-database-couchbase
 
-[![CircleCI](https://circleci.com/gh/hashicorp/vault-plugin-database-couchbase.svg?style=svg)](https://circleci.com/gh/hashicorp/vault-plugin-database-couchbase)
-
 A [Vault](https://www.vaultproject.io) plugin for Couchbase
 
 This project uses the database plugin interface introduced in Vault version 0.7.1.
@@ -142,3 +140,9 @@ username               vault-edu
 ## Developing
 
 You can run `make dev-vault` in the root of the repo to start up a development vault server and automatically register a local build of the plugin. You will need to have a built `vault` binary available in your `$PATH` to do so.
+
+### Acceptance tests
+
+Run `make testacc`.
+
+For ARM-based macs, you need to run with `make testacc COUCHBASE_VERSION=7.1.3`.
