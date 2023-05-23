@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/couchbase/gocb/v2 v2.6.3
-	github.com/docker/docker v20.10.9+incompatible // indirect
+	github.com/docker/docker v20.10.24+incompatible // indirect
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
