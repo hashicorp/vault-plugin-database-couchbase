@@ -144,5 +144,3 @@ You can run `make dev-vault` in the root of the repo to start up a development v
 ### Acceptance tests
 
 Run `make testacc`.
-
-For ARM-based macs, you need to run with `make testacc COUCHBASE_VERSION=7.1.3`.
