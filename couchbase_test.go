@@ -16,8 +16,8 @@ import (
 	dbtesting "github.com/hashicorp/vault/sdk/database/dbplugin/v5/testing"
 	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
-	"github.com/rogpeppe/go-internal/semver"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/mod/semver"
 )
 
 // should match a couchbase/server-sandbox docker repository tag. Default to 6.5.0
