@@ -1,5 +1,10 @@
 ## Unreleased
 
+## v0.9.2
+
+CHANGES:
+* Renaming  `cmd/couchbase-database-plugin/main.go` to `cmd/vault-plugin-database-couchbase/main.go` [[GH-50](https://github.com/hashicorp/vault-plugin-database-couchbase/pull/50)]
+
 ## v0.9.1
 
 IMPROVEMENTS:

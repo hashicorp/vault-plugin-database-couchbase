@@ -57,7 +57,7 @@ echo "    Authing"
 vault login root &>/dev/null
 
 echo "--> Building"
-go build -o "$SCRATCH/plugins/$PLUGIN_NAME" "./cmd/couchbase-database-plugin"
+go build -o "$SCRATCH/plugins/$PLUGIN_NAME" "./cmd/vault-plugin-database-couchbase"
 SHASUM=$(shasum -a 256 "$SCRATCH/plugins/$PLUGIN_NAME" | cut -d " " -f1)
 
 echo "    Registering plugin"
