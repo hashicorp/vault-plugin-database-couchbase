@@ -4,7 +4,7 @@
 
 set -e
 
-TOOL=couchbase-database-plugin
+TOOL=vault-plugin-database-couchbase
 #
 # This script builds the application from source for multiple platforms.
 set -e
