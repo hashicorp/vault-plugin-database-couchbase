@@ -17,9 +17,11 @@ import (
 	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/mod/semver"
 )
 
-var pre6dot5 = false // check for Pre 6.5.0 Couchbase
+// should match a couchbase/server-sandbox docker repository tag. Default to 6.5.0
+const DEFAULT_COUCHBASE_VERSION = "7.1.4"
 
 const (
 	adminUsername = "Administrator"
@@ -33,14 +35,21 @@ var (
 	testCouchbaseRoleAndGroup = fmt.Sprintf(`{"roles":[{"role":"ro_admin"},{"role":"bucket_admin","bucket_name":"%s"}],"groups":["g1", "g2"]}`, bucketName)
 )
 
+func getCouchbaseVersion() string {
+	// cbver should match a couchbase/server-sandbox docker repository tag
+	cbver := os.Getenv("COUCHBASE_VERSION")
+	if cbver != "" {
+		return cbver
+	}
+	return DEFAULT_COUCHBASE_VERSION
+}
+
+// check for Pre 6.5.0 Couchbase
+var pre6dot5 = semver.Compare(getCouchbaseVersion(), "6.5.0") < 0
+
 func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 	if os.Getenv("COUCHBASE_HOST") != "" {
 		return func() {}, os.Getenv("COUCHBASE_HOST"), 8091
-	}
-	// cbver should match a couchbase/server-sandbox docker repository tag. Default to 6.5.0
-	cbver := os.Getenv("COUCHBASE_VERSION")
-	if cbver == "" {
-		cbver = "6.5.0"
 	}
 
 	pool, err := dockertest.NewPool("")
@@ -50,7 +59,7 @@ func prepareCouchbaseTestContainer(t *testing.T) (func(), string, int) {
 
 	ro := &dockertest.RunOptions{
 		Repository:   "docker.io/couchbase/server-sandbox",
-		Tag:          cbver,
+		Tag:          getCouchbaseVersion(),
 		ExposedPorts: []string{"8091", "8092", "8093", "8094", "11207", "11210", "18091", "18092", "18093", "18094"},
 		PortBindings: map[dc.Port][]dc.PortBinding{
 			"8091": {
