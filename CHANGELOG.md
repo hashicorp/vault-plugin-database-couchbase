@@ -1,5 +1,14 @@
 ## Unreleased
 
+## v0.9.3
+### September 7, 2023
+IMPROVEMENTS:
+
+* Updated dependencies:
+  * `github.com/hashicorp/vault/sdk` v0.9.0 -> v0.10.0
+  * `github.com/stretchr/testify` v1.8.3 -> v1.8.4
+  * `golang.org/x/mod` v0.9.0 -> v0.12.0
+
 ## v0.9.2
 
 CHANGES:
