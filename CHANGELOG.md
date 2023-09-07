@@ -1,7 +1,7 @@
 ## Unreleased
 
-## v0.9.3
-### September 7, 2023
+## v0.9.3 (September 7, 2023)
+
 IMPROVEMENTS:
 
 * Updated dependencies:
