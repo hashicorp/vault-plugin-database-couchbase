@@ -1,6 +1,11 @@
 ## Unreleased
 
-## v0.9.3 (September 7, 2023)
+## v0.9.4
+
+IMPROVEMENTS:
+* Updated indirect dependency `golang.org/x/net` v0.9.0 -> v0.15.0 due to vulnerability GO-2023-1988 v0.9.0
+  
+## v0.9.3
 
 IMPROVEMENTS:
 
