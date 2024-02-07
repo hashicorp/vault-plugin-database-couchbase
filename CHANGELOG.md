@@ -6,6 +6,8 @@
   * github.com/hashicorp/go-hclog v1.5.0 -> v1.6.2
   * github.com/hashicorp/vault/sdk v0.10.0 -> v0.10.2
   * golang.org/x/mod v0.12.0 -> v0.15.0
+  * github.com/opencontainers/runc v1.1.6 -> v1.1.12
+  * github.com/docker/docker v24.0.5+incompatible -> v24.0.9+incompatible
 
 ## v0.9.4
 
