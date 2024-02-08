@@ -1,8 +1,12 @@
 ## Unreleased
 
+## v0.10.1
+* Revert dependency update causing build failures on 32-bit systems
+  * github.com/couchbase/gocb/v2 v2.7.1 -> v2.6.5
+
 ## v0.10.0
 * Updated dependencies:
-  * github.com/couchbase/gocb/v2 v2.6.3 -> v2.6.5
+  * github.com/couchbase/gocb/v2 v2.6.3 -> v2.7.1
   * github.com/hashicorp/go-hclog v1.5.0 -> v1.6.2
   * github.com/hashicorp/vault/sdk v0.10.0 -> v0.10.2
   * golang.org/x/mod v0.12.0 -> v0.15.0
