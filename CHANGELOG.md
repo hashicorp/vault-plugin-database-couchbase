@@ -1,5 +1,9 @@
 ## Unreleased
 
+## v0.10.1
+* Revert dependency update causing build failures on 32-bit systems
+  * github.com/couchbase/gocb/v2 v2.7.1 -> v2.6.5
+
 ## v0.10.0
 * Updated dependencies:
   * github.com/couchbase/gocb/v2 v2.6.3 -> v2.6.5
