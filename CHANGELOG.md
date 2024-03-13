@@ -1,5 +1,9 @@
 ## Unreleased
 
+IMPROVEMENTS:
+* Updated dependencies:
+  * `github.com/jackc/pgx/v4` v4.18.1 -> v4.18.2
+
 ## v0.10.1
 * Revert dependency update causing build failures on 32-bit systems
   * github.com/couchbase/gocb/v2 v2.7.1 -> v2.6.5
