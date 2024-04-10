@@ -4,6 +4,7 @@ IMPROVEMENTS:
 * Updated dependencies:
   * `github.com/jackc/pgx/v4` v4.18.1 -> v4.18.2
   * `google.golang.org/protobuf` v1.32.0 -> v1.33.0
+  * `github.com/hashicorp/go-plugin` v1.5.2 to -> v1.6.0
 
 ## v0.10.1
 * Revert dependency update causing build failures on 32-bit systems
