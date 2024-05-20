@@ -2,8 +2,6 @@ module github.com/hashicorp/vault-plugin-database-couchbase
 
 go 1.21
 
-toolchain go1.22.3
-
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/couchbase/gocb/v2 v2.8.1
