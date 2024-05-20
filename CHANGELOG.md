@@ -1,5 +1,6 @@
 ## Unreleased
 
+## v0.11.0
 IMPROVEMENTS:
 * Updated dependencies:
   * `github.com/jackc/pgx/v4` v4.18.1 -> v4.18.2
