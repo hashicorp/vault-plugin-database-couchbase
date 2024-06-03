@@ -97,7 +97,6 @@ func (c *CouchbaseDB) NewUser(ctx context.Context, req dbplugin.NewUserRequest) 
 	if err != nil {
 		return dbplugin.NewUserResponse{}, fmt.Errorf("failed to generate username: %w", err)
 	}
-	username = strings.ToUpper(username)
 
 	db, err := c.getConnection(ctx)
 	if err != nil {
@@ -138,7 +137,6 @@ func (c *CouchbaseDB) DeleteUser(ctx context.Context, req dbplugin.DeleteUserReq
 	mgr := db.Users()
 
 	err = mgr.DropUser(req.Username, nil)
-
 	if err != nil {
 		return dbplugin.DeleteUserResponse{}, err
 	}
@@ -208,7 +206,6 @@ func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password
 			Timeout:    computeTimeout(ctx),
 			DomainName: "local",
 		})
-
 	if err != nil {
 		return err
 	}

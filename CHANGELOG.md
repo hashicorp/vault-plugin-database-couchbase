@@ -1,5 +1,8 @@
 ## Unreleased
 
+BUG FIXES:
+* allow custom username templates to use the lowercase function (https://github.com/hashicorp/vault-plugin-database-couchbase/pull/81)
+
 ## v0.11.0
 IMPROVEMENTS:
 * Updated dependencies:
