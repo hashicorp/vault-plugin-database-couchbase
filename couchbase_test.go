@@ -190,6 +190,7 @@ func TestDriver(t *testing.T) {
 	t.Run("TimeoutCalc", func(t *testing.T) { testComputeTimeout(t) })
 	t.Run("Create/long username", func(t *testing.T) { testCreateuser_UsernameTemplate_LongUsername(t, address, port) })
 	t.Run("Create/custom username template", func(t *testing.T) { testCreateUser_UsernameTemplate_CustomTemplate(t, address, port) })
+	t.Run("Create/custom username template lowercase", func(t *testing.T) { testCreateUser_UsernameTemplate_CustomTemplateLowerCase(t, address, port) })
 }
 
 func testGetCouchbaseVersion(t *testing.T, address string) {
@@ -357,10 +358,10 @@ func testCouchbaseDBCreateUser(t *testing.T, address string, port int) {
 		Expiration: time.Now().Add(time.Minute),
 	}
 
+	expectedUsernameRegex := `^V_TEST_TEST_\w*_[0-9]{10}$`
 	userResp, err := db.NewUser(context.Background(), createReq)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	require.NoError(t, err)
+	require.Regexp(t, expectedUsernameRegex, userResp.Username)
 
 	db.Close()
 
@@ -869,6 +870,52 @@ func testCreateUser_UsernameTemplate_CustomTemplate(t *testing.T, address string
 	}
 
 	expectedUsernameRegex := "^[A-Z0-9]{2}_[0-9]{10}_TESTROLENAMEWITHMANYCHARACTERS_TOKEN$"
+
+	newUserResp, err := db.NewUser(context.Background(), newUserReq)
+	require.NoError(t, err)
+	require.Regexp(t, expectedUsernameRegex, newUserResp.Username)
+
+	if err := checkCredsExist(t, newUserResp.Username, password, address, port); err != nil {
+		t.Fatalf("Could not connect to database: %s", err)
+	}
+}
+
+func testCreateUser_UsernameTemplate_CustomTemplateLowerCase(t *testing.T, address string, port int) {
+	bucket := ""
+	if pre6dot5 {
+		bucket = bucketName
+	}
+	initReq := dbplugin.InitializeRequest{
+		Config: map[string]interface{}{
+			"hosts":             address,
+			"port":              port,
+			"username":          adminUsername,
+			"password":          adminPassword,
+			"bucket_name":       bucket,
+			"username_template": "{{random 2 | lowercase }}_{{unix_time}}_{{.RoleName | lowercase }}_{{.DisplayName | lowercase }}",
+		},
+		VerifyConnection: true,
+	}
+
+	db := new()
+	defer dbtesting.AssertClose(t, db)
+
+	dbtesting.AssertInitialize(t, db, initReq)
+
+	password := "98yq3thgnakjsfhjkl"
+	newUserReq := dbplugin.NewUserRequest{
+		UsernameConfig: dbplugin.UsernameMetadata{
+			DisplayName: "TOKEN",
+			RoleName:    "TESTROLENAME",
+		},
+		Statements: dbplugin.Statements{
+			Commands: []string{testCouchbaseRole},
+		},
+		Password:   password,
+		Expiration: time.Now().Add(time.Minute),
+	}
+
+	expectedUsernameRegex := "^[a-z0-9]{2}_[0-9]{10}_testrolename_token$"
 
 	newUserResp, err := db.NewUser(context.Background(), newUserReq)
 	require.NoError(t, err)
