@@ -1,5 +1,11 @@
 ## Unreleased
 
+## v0.12.0
+### Sept 4, 2024
+
+IMPROVEMENTS:
+* Updated dependencies: (https://github.com/hashicorp/vault-plugin-database-couchbase/pull/80)
+
 BUG FIXES:
 * allow custom username templates to use the lowercase function (https://github.com/hashicorp/vault-plugin-database-couchbase/pull/81)
 
