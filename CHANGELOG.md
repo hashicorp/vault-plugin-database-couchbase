@@ -1,5 +1,13 @@
 ## Unreleased
 
+## v0.13.0
+### Feb 7, 2025
+
+IMPROVEMENTS:
+* Updated dependencies: 
+  * (https://github.com/hashicorp/vault-plugin-database-couchbase/pull/89)
+  * (https://github.com/hashicorp/vault-plugin-database-couchbase/pull/92)
+
 ## v0.12.0
 ### Sept 4, 2024
 
