@@ -117,7 +117,7 @@ func (c *CouchbaseDB) NewUser(ctx context.Context, req dbplugin.NewUserRequest) 
 
 func (c *CouchbaseDB) UpdateUser(ctx context.Context, req dbplugin.UpdateUserRequest) (dbplugin.UpdateUserResponse, error) {
 	if req.Password != nil {
-		err := c.changeUserPassword(ctx, req.Username, req.Password.NewPassword)
+		err := c.changeUserPassword(ctx, req.Username, req.Password.NewPassword, req.SelfManagedPassword)
 		return dbplugin.UpdateUserResponse{}, err
 	}
 	return dbplugin.UpdateUserResponse{}, nil
@@ -183,14 +183,23 @@ func newUser(ctx context.Context, db *gocb.Cluster, username string, req dbplugi
 	return nil
 }
 
-func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password string) error {
+func (c *CouchbaseDB) changeUserPassword(ctx context.Context, username, password, selfManagedPass string) error {
 	// Don't let anyone write the config while we're using it
 	c.RLock()
 	defer c.RUnlock()
 
-	db, err := c.getConnection(ctx)
-	if err != nil {
-		return err
+	var db *gocb.Cluster
+	var err error
+	if selfManagedPass == "" {
+		db, err = c.getConnection(ctx)
+		if err != nil {
+			return err
+		}
+	} else {
+		db, err = c.getStaticConnection(ctx, username, selfManagedPass)
+		if err != nil {
+			return fmt.Errorf("unable to get static connection from cache: %w", err)
+		}
 	}
 
 	// Get the UserManager
@@ -236,6 +245,14 @@ func computeTimeout(ctx context.Context) (timeout time.Duration) {
 
 func (c *CouchbaseDB) getConnection(ctx context.Context) (*gocb.Cluster, error) {
 	db, err := c.Connection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return db.(*gocb.Cluster), nil
+}
+
+func (c *CouchbaseDB) getStaticConnection(ctx context.Context, username, password string) (*gocb.Cluster, error) {
+	db, err := c.StaticConnection(ctx, username, password)
 	if err != nil {
 		return nil, err
 	}
