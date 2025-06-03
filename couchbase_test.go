@@ -605,7 +605,7 @@ func testCouchbaseDBCreateUser_groupOnly(t *testing.T, address string, port int)
 			RoleName:    "test",
 		},
 		Statements: dbplugin.Statements{
-			Commands: []string{fmt.Sprintf(testCouchbaseGroup)},
+			Commands: []string{testCouchbaseGroup},
 		},
 		Password:   password,
 		Expiration: time.Now().Add(time.Minute),
