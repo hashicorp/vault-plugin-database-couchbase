@@ -11,11 +11,11 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-version v1.7.0
-	github.com/hashicorp/vault/sdk v0.17.0
+	github.com/hashicorp/vault/sdk v0.18.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/mod v0.24.0
+	golang.org/x/mod v0.25.0
 )
 
 require (
