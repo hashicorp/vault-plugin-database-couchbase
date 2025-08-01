@@ -6,16 +6,16 @@ toolchain go1.24.3
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/couchbase/gocb/v2 v2.10.0
+	github.com/couchbase/gocb/v2 v2.10.1
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 	github.com/hashicorp/go-version v1.7.0
-	github.com/hashicorp/vault/sdk v0.17.0
+	github.com/hashicorp/vault/sdk v0.18.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ory/dockertest/v3 v3.12.0
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/mod v0.24.0
+	golang.org/x/mod v0.26.0
 )
 
 require (
@@ -31,7 +31,7 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/containerd/continuity v0.4.5 // indirect
-	github.com/couchbase/gocbcore/v10 v10.7.0 // indirect
+	github.com/couchbase/gocbcore/v10 v10.7.1 // indirect
 	github.com/couchbase/gocbcoreps v0.1.3 // indirect
 	github.com/couchbase/goprotostellar v1.0.2 // indirect
 	github.com/couchbaselabs/gocbconnstr/v2 v2.0.0-20240607131231-fb385523de28 // indirect
