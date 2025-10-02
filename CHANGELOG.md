@@ -1,3 +1,15 @@
+## v0.15.0
+### October 2, 2025
+
+* Bump go version to 1.25.1 (#107)
+* Automated dependency upgrades (#99)
+* [COMPLIANCE] Add Copyright and License Headers (#106)
+* Bump github.com/go-viper/mapstructure/v2 from 2.1.0 to 2.4.0 (#104)
+* init changie (#105)
+* Add backport assistant workflow (#102)
+* Add backport assistant workflow (#101)
+* [Compliance] - PR Template Changes Required (#100)
+
 ## v0.14.0
 ### Jun 3, 2025
 
