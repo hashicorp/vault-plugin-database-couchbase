@@ -1,3 +1,9 @@
+## v0.16.1
+### March 20, 2026
+
+* Upgrade `golang.org` libs to resolve vulns (#117)
+* Automated dependency upgrades (#116)
+
 ## Unreleased
 ## v0.16.0
 ### March 16, 2026
