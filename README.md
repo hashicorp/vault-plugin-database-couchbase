@@ -1,5 +1,7 @@
 # vault-plugin-database-couchbase
 
+A new change to the plugin
+
 A [Vault](https://www.vaultproject.io) plugin for Couchbase
 
 This project uses the database plugin interface introduced in Vault version 0.7.1.
