@@ -1,6 +1,6 @@
 module github.com/hashicorp/vault-plugin-database-couchbase
 
-go 1.27.1
+go 1.26.1
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
