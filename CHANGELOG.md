@@ -1,3 +1,11 @@
+## v0.17.0
+### September 11, 2026
+
+* Upgrade vault/sdk (#130)
+* Automated dependency upgrades (#129)
+* Bump google.golang.org/grpc from 1.79.3 to 1.83.1 (#126)
+* Bump golang.org/x/crypto from 0.49.0 to 0.52.0 (#112)
+
 ## v0.16.1
 ### March 20, 2026
 
