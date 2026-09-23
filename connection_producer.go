@@ -8,6 +8,8 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	log "github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault/sdk/database/helper/cacheutil"
 	"strings"
 	"sync"
 
@@ -15,6 +17,10 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/sdk/database/helper/connutil"
 	"github.com/mitchellh/mapstructure"
+)
+
+const (
+	maxOpenConnections = 4
 )
 
 type couchbaseDBConnectionProducer struct {
@@ -28,11 +34,13 @@ type couchbaseDBConnectionProducer struct {
 	InsecureTLS bool   `json:"insecure_tls"`
 	Base64Pem   string `json:"base64pem"`
 	BucketName  string `json:"bucket_name"`
+	SelfManaged bool   `json:"self_managed"`
 
-	Initialized bool
-	rawConfig   map[string]interface{}
-	Type        string
-	cluster     *gocb.Cluster
+	Initialized         bool
+	rawConfig           map[string]interface{}
+	Type                string
+	cluster             *gocb.Cluster
+	staticAccountsCache *cacheutil.Cache
 	sync.RWMutex
 }
 
@@ -70,9 +78,18 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, initConfig map
 	case len(c.Hosts) == 0:
 		return nil, fmt.Errorf("hosts cannot be empty")
 	case len(c.Username) == 0:
-		return nil, fmt.Errorf("username cannot be empty")
+		if c.SelfManaged {
+			// TODO pre-emptively added for middleware requirements
+			c.Username = "username"
+		} else {
+			return nil, fmt.Errorf("username cannot be empty")
+		}
 	case len(c.Password) == 0:
-		return nil, fmt.Errorf("password cannot be empty")
+		if c.SelfManaged {
+			c.Password = "password"
+		} else {
+			return nil, fmt.Errorf("password cannot be empty")
+		}
 	}
 
 	if c.TLS {
@@ -87,7 +104,30 @@ func (c *couchbaseDBConnectionProducer) Init(ctx context.Context, initConfig map
 
 	c.Initialized = true
 
-	if verifyConnection {
+	if c.SelfManaged && c.staticAccountsCache == nil {
+		logger := log.New(&log.LoggerOptions{
+			Mutex: &sync.Mutex{},
+		})
+
+		closer := func(key interface{}, value interface{}) {
+			logger.Debug(fmt.Sprintf("Evicting key %s from static LRU cache", key))
+			conn, ok := value.(*gocb.Cluster)
+			if !ok {
+				// TODO
+			}
+			if err := conn.Close(&gocb.ClusterCloseOptions{}); err != nil {
+				//TODO
+			}
+			logger.Debug(fmt.Sprintf("Closed DB connection for %s", key))
+		}
+		c.staticAccountsCache, err = cacheutil.NewCache(maxOpenConnections, closer)
+
+		if err != nil {
+			return nil, fmt.Errorf("error initializing static account cache: %s", err)
+		}
+	}
+
+	if verifyConnection && !c.SelfManaged {
 		if _, err := c.Connection(ctx); err != nil {
 			c.close()
 			return nil, errwrap.Wrapf("error verifying connection: {{err}}", err)
@@ -113,24 +153,9 @@ func (c *couchbaseDBConnectionProducer) Connection(ctx context.Context) (interfa
 	if c.cluster != nil {
 		return c.cluster, nil
 	}
-	var err error
-	var sec gocb.SecurityConfig
-	var pem []byte
-
-	if c.TLS {
-		pem, err = base64.StdEncoding.DecodeString(c.Base64Pem)
-		if err != nil {
-			return nil, errwrap.Wrapf("error decoding Base64Pem: {{err}}", err)
-		}
-		rootCAs := x509.NewCertPool()
-		ok := rootCAs.AppendCertsFromPEM([]byte(pem))
-		if !ok {
-			return nil, fmt.Errorf("failed to parse root certificate")
-		}
-		sec = gocb.SecurityConfig{
-			TLSRootCAs:    rootCAs,
-			TLSSkipVerify: c.InsecureTLS,
-		}
+	sec, err := c.getSecurityConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	c.cluster, err = gocb.Connect(
@@ -146,23 +171,91 @@ func (c *couchbaseDBConnectionProducer) Connection(ctx context.Context) (interfa
 
 	// For databases 6.0 and earlier, we will need to open a `Bucket instance before connecting to any other
 	// HTTP services such as UserManager.
-
-	if c.BucketName != "" {
-		bucket := c.cluster.Bucket(c.BucketName)
-		// We wait until the bucket is definitely connected and setup.
-		err = bucket.WaitUntilReady(computeTimeout(ctx), nil)
-		if err != nil {
-			return nil, errwrap.Wrapf("error in Connection waiting for bucket: {{err}}", err)
-		}
-	} else {
-		err = c.cluster.WaitUntilReady(computeTimeout(ctx), nil)
-
-		if err != nil {
-			return nil, errwrap.Wrapf("error in Connection waiting for cluster: {{err}}", err)
-		}
+	if err := c.configureBucket(ctx, c.cluster); err != nil {
+		return nil, errwrap.Wrapf("error in Connection: {{err}}", err)
 	}
 
 	return c.cluster, nil
+}
+
+func (c *couchbaseDBConnectionProducer) StaticConnection(ctx context.Context, username, password string) (interface{}, error) {
+	if !c.Initialized {
+		return nil, connutil.ErrNotInitialized
+	}
+
+	var cluster *gocb.Cluster
+	if clusterRaw, ok := c.staticAccountsCache.Get(username); ok {
+		cluster = clusterRaw.(*gocb.Cluster)
+	}
+	if cluster != nil {
+		return cluster, nil
+	}
+
+	// TODO repeated code can be consolidated further
+	// Attempt to make a connection for this user if it does not exist
+	sec, err := c.getSecurityConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err = gocb.Connect(
+		c.Hosts,
+		gocb.ClusterOptions{
+			Username:       username,
+			Password:       password,
+			SecurityConfig: sec,
+		})
+	if err != nil {
+		return nil, errwrap.Wrapf("error in Connection: {{err}}", err)
+	}
+
+	// TODO check if there should be different buckets for different clusters here
+	if err := c.configureBucket(ctx, cluster); err != nil {
+		return nil, errwrap.Wrapf("error in Connection: {{err}}", err)
+	}
+
+	c.staticAccountsCache.Add(username, cluster)
+	return cluster, nil
+}
+
+func (c *couchbaseDBConnectionProducer) getSecurityConfig() (gocb.SecurityConfig, error) {
+	var sec gocb.SecurityConfig
+	if c.TLS {
+		pem, err := base64.StdEncoding.DecodeString(c.Base64Pem)
+		if err != nil {
+			return gocb.SecurityConfig{}, fmt.Errorf("error decoding Base64Pem: %s", err)
+		}
+		rootCAs := x509.NewCertPool()
+		ok := rootCAs.AppendCertsFromPEM([]byte(pem))
+		if !ok {
+			return gocb.SecurityConfig{}, fmt.Errorf("failed to parse root certificate")
+		}
+		sec = gocb.SecurityConfig{
+			TLSRootCAs:    rootCAs,
+			TLSSkipVerify: c.InsecureTLS,
+		}
+	}
+
+	return sec, nil
+}
+
+func (c *couchbaseDBConnectionProducer) configureBucket(ctx context.Context, cluster *gocb.Cluster) error {
+	var err error
+	if c.BucketName != "" {
+		bucket := cluster.Bucket(c.BucketName)
+		// We wait until the bucket is definitely connected and setup.
+		err = bucket.WaitUntilReady(computeTimeout(ctx), nil)
+		if err != nil {
+			return fmt.Errorf("error waiting for bucket: %s", err)
+		}
+	} else {
+		err = cluster.WaitUntilReady(computeTimeout(ctx), nil)
+		if err != nil {
+			return fmt.Errorf("error waiting for cluster: %s", err)
+		}
+	}
+
+	return err
 }
 
 // close terminates the database connection without locking
