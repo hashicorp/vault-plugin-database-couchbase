@@ -1,3 +1,16 @@
+## v0.17.1
+### October 23, 2026
+
+IMPROVEMENTS:
+* Updated Go version: 1.27.1 => 1.27.3
+* Updated indirect dependencies:
+  * github.com/jackc/pgx/v5 v5.9.1 => v5.9.2
+  * golang.org/x/crypto v0.57.0 => v0.58.0
+  * golang.org/x/net v0.58.0 => v0.60.0
+  * golang.org/x/sync v0.23.0 => v0.24.0
+  * golang.org/x/sys v0.48.0 => v0.49.0
+  * golang.org/x/text v0.42.0 => v0.43.0
+
 ## v0.17.0
 ### September 11, 2026
 
